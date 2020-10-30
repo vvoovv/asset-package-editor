@@ -28,12 +28,34 @@ class AssetManager:
             layout.operator("blosm.am_load_asset_package_list")
             return
         
+        if am.state == "apNameEditor":
+            self.drawApNameEditor(context)
+        elif am.state == "apSelection":
+            self.drawApSelection(context)
+    
+    def drawApSelection(self, context):
+        layout = self.layout
+        am = context.scene.blosmAm
+        
         layout.operator("blosm.am_install_asset_package")
         row = layout.row()
         row.prop(am, "assetPackage")
-        row.operator("blosm.am_load_asset_info", text="Load data")
+        row.operator("blosm.am_edit_asset_pack", text="Edit pack")
         row.operator("blosm.am_copy_asset_package", text="Copy")
-        row.operator("blosm.am_update_asset_package", text="Update")    
+        row.operator("blosm.am_update_asset_package", text="Update")
+        row.operator("blosm.am_edit_asset_pack_name", text="Edit name")
+    
+    def drawApNameEditor(self, context):
+        layout = self.layout
+        am = context.scene.blosmAm
+        
+        layout.prop(am, "apDirName")
+        layout.prop(am, "apName")
+        layout.prop(am, "apDescription")
+        
+        row = layout.row()
+        row.operator("blosm.am_apply_asset_package_name")
+        row.operator("blosm.am_cancel")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -60,6 +82,35 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         name = "Asset package",
         items = getAssetPackages,
         description = "Asset package for editing"
+    )
+    
+    state: bpy.props.EnumProperty(
+        name = "State",
+        items = (
+            ("apSelection", "asset package selection", "asset package selection"),
+            ("apNameEditor", "asset package name editor", "asset package name editor"),
+            ("apEditor", "asset package editor", "asset package editor")
+        ),
+        description = "Asset manager state",
+        default = "apEditor" 
+    )
+    
+    #
+    # The properties for the asset package name editor
+    #
+    apDirName: bpy.props.StringProperty(
+        name = "Folder",
+        description = "Folder name for the asset package, it must be unique among the asset packages"
+    )
+    
+    apName: bpy.props.StringProperty(
+        name = "Name",
+        description = "Name for the asset package"
+    )
+    
+    apDescription: bpy.props.StringProperty(
+        name = "Description",
+        description = "Description for the asset package"
     )
 
 

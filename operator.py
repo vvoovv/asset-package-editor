@@ -20,11 +20,23 @@ class BLOSM_OT_AmLoadAssetPackageList(bpy.types.Operator):
     def execute(self, context):
         assetPackages.clear()
         assetPackages.extend(("default", "other"))
+        context.scene.blosmAm.state = "apSelection"
         return {'FINISHED'}
 
 
-class BLOSM_OT_AmEditAssetInfo(bpy.types.Operator):
-    bl_idname = "blosm.am_edit_asset_info"
+class BLOSM_OT_AmEditAssetPack(bpy.types.Operator):
+    bl_idname = "blosm.am_edit_asset_pack"
+    bl_label = "Load asset info"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        assetPackage = context.scene.blosmAm.assetPackage
+        print(assetPackage)
+        return {'FINISHED'}
+
+
+class BLOSM_OT_AmEditAssetPackName(bpy.types.Operator):
+    bl_idname = "blosm.am_edit_asset_pack_name"
     bl_label = "Load asset info"
     bl_options = {'INTERNAL'}
     
@@ -61,6 +73,12 @@ class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
         self.copyStyle(sourceDir, targetDir)
         
         self.copyAssetInfos(sourceDir, targetDir, apDirName)
+        
+        context.scene.blosmAm.apDirName = apDirNameTarget
+        context.scene.blosmAm.apName = "Name"
+        context.scene.blosmAm.apDescription = "Description"
+        
+        context.scene.blosmAm.state = "apNameEditor"
         
         return {'FINISHED'}
     
@@ -125,12 +143,36 @@ class BLOSM_OT_AmUpdateAssetPackage(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmCancel(bpy.types.Operator):
+    bl_idname = "blosm.am_cancel"
+    bl_label = "Cancel"
+    bl_description = "A generic operator for canceling"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        print("Cancelled")
+        return {'FINISHED'}
+    
+
+class BLOSM_OT_AmApplyAssetPackageName(bpy.types.Operator):
+    bl_idname = "blosm.am_apply_asset_package_name"
+    bl_label = "Apply"
+    bl_description = "Apply asset package name"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        print("Applied")
+        return {'FINISHED'}
+
 _classes = (
     BLOSM_OT_AmLoadAssetPackageList,
-    BLOSM_OT_AmEditAssetInfo,
+    BLOSM_OT_AmEditAssetPack,
+    BLOSM_OT_AmEditAssetPackName,
     BLOSM_OT_AmCopyAssetPackage,
     BLOSM_OT_AmInstallAssetPackage,
-    BLOSM_OT_AmUpdateAssetPackage
+    BLOSM_OT_AmUpdateAssetPackage,
+    BLOSM_OT_AmCancel,
+    BLOSM_OT_AmApplyAssetPackageName
 )
 
 
