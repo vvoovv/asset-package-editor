@@ -25,7 +25,7 @@ class AssetManager:
         layout = self.layout
         am = context.scene.blosmAm
         if not assetPackages:
-            layout.operator("blosm.am_load_asset_package_list")
+            layout.operator("blosm.am_load_ap_list")
             return
         
         if am.state == "apNameEditor":
@@ -40,10 +40,10 @@ class AssetManager:
         layout.operator("blosm.am_install_asset_package")
         row = layout.row()
         row.prop(am, "assetPackage")
-        row.operator("blosm.am_edit_asset_pack", text="Edit pack")
+        row.operator("blosm.am_edit_asset_package", text="Edit pack")
         row.operator("blosm.am_copy_asset_package", text="Copy")
         row.operator("blosm.am_update_asset_package", text="Update")
-        row.operator("blosm.am_edit_asset_pack_name", text="Edit name")
+        row.operator("blosm.am_edit_ap_name", text="Edit name")
     
     def drawApNameEditor(self, context):
         layout = self.layout
@@ -73,7 +73,7 @@ class BLOSM_PT_Panel(bpy.types.Panel, AssetManager):
 _enumAssetPackages = []
 def getAssetPackages(self, context):
     _enumAssetPackages.clear()
-    return ( (assetPackage, assetPackage, assetPackage) for assetPackage in assetPackages )
+    return ( (assetPackage[1], assetPackage[1], assetPackage[2]) for assetPackage in assetPackages )
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):

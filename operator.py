@@ -11,21 +11,46 @@ def _getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
 
 
-class BLOSM_OT_AmLoadAssetPackageList(bpy.types.Operator):
-    bl_idname = "blosm.am_load_asset_package_list"
+def writeJson(jsonObj, jsonFilepath):
+    with open(jsonFilepath, 'w', encoding='utf-8') as jsonFile:
+        json.dump(jsonObj, jsonFile, ensure_ascii=False, indent=4)
+
+
+class BLOSM_OT_AmLoadApList(bpy.types.Operator):
+    bl_idname = "blosm.am_load_ap_list"
     bl_label = "Load asset package list"
     bl_description = "Load the list of asset packages"
     bl_options = {'INTERNAL'}
     
+    apListFileName = "asset_packages.json"
+    
     def execute(self, context):
         assetPackages.clear()
-        assetPackages.extend(("default", "other"))
+        assetPackages.extend( self.getApListJson(context)["assetPackages"] )
         context.scene.blosmAm.state = "apSelection"
         return {'FINISHED'}
+    
+    def getApListJson(self, context):
+        apListFilepath = os.path.join(_getAssetsDir(context), self.apListFileName)
+        
+        # check if the file with the list of asset packages exists
+        if not os.path.isfile(apListFilepath):
+            # create a JSON file with the default list of asset packages
+            writeJson(
+                dict(assetPackages = [("default", "default", "default asset package")]),
+                apListFilepath
+            )
+        
+        with open(apListFilepath, 'r') as jsonFile:
+            apListJson = json.load(jsonFile)
+        
+        return apListJson
+        
+            
 
 
-class BLOSM_OT_AmEditAssetPack(bpy.types.Operator):
-    bl_idname = "blosm.am_edit_asset_pack"
+class BLOSM_OT_AmEditAssetPackage(bpy.types.Operator):
+    bl_idname = "blosm.am_edit_asset_package"
     bl_label = "Load asset info"
     bl_options = {'INTERNAL'}
     
@@ -35,14 +60,19 @@ class BLOSM_OT_AmEditAssetPack(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class BLOSM_OT_AmEditAssetPackName(bpy.types.Operator):
-    bl_idname = "blosm.am_edit_asset_pack_name"
+class BLOSM_OT_AmEditApName(bpy.types.Operator):
+    bl_idname = "blosm.am_edit_ap_name"
     bl_label = "Load asset info"
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
         assetPackage = context.scene.blosmAm.assetPackage
-        print(assetPackage)
+        
+        context.scene.blosmAm.apDirName = assetPackage
+        context.scene.blosmAm.apName = "Name"
+        context.scene.blosmAm.apDescription = "Description"
+        
+        context.scene.blosmAm.state = "apNameEditor"
         return {'FINISHED'}
 
 
@@ -65,7 +95,7 @@ class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
                 counter += 1
             else:
                 break
-        assetPackages.append(apDirNameTarget)
+        assetPackages.append((apDirNameTarget, apDirNameTarget, apDirNameTarget))
         context.scene.blosmAm.assetPackage = apDirNameTarget
         # create a directory for the copy of the asset package <assetPackage>
         os.makedirs(targetDir)
@@ -101,8 +131,7 @@ class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
                     assetInfo = deepcopy(json.load(aiFile))
                 self.processAssetInfo(assetInfo, apDirName)
                 # write the target asset info file
-                with open(aiFilepathTarget, 'w', encoding='utf-8') as aiFile:
-                    json.dump(assetInfo, aiFile, ensure_ascii=False, indent=4)
+                writeJson(assetInfo, aiFilepathTarget)
     
     def processAssetInfo(self, assetInfo, apDirName):
         """
@@ -150,7 +179,7 @@ class BLOSM_OT_AmCancel(bpy.types.Operator):
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
-        print("Cancelled")
+        context.scene.blosmAm.state = "apSelection"
         return {'FINISHED'}
     
 
@@ -165,9 +194,9 @@ class BLOSM_OT_AmApplyAssetPackageName(bpy.types.Operator):
         return {'FINISHED'}
 
 _classes = (
-    BLOSM_OT_AmLoadAssetPackageList,
-    BLOSM_OT_AmEditAssetPack,
-    BLOSM_OT_AmEditAssetPackName,
+    BLOSM_OT_AmLoadApList,
+    BLOSM_OT_AmEditAssetPackage,
+    BLOSM_OT_AmEditApName,
     BLOSM_OT_AmCopyAssetPackage,
     BLOSM_OT_AmInstallAssetPackage,
     BLOSM_OT_AmUpdateAssetPackage,
