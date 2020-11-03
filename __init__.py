@@ -40,10 +40,11 @@ class AssetManager:
         layout.operator("blosm.am_install_asset_package")
         row = layout.row()
         row.prop(am, "assetPackage")
-        row.operator("blosm.am_edit_asset_package", text="Edit pack")
+        row.operator("blosm.am_edit_ap", text="Edit package")
         row.operator("blosm.am_copy_ap", text="Copy")
         row.operator("blosm.am_update_asset_package", text="Update")
         row.operator("blosm.am_edit_ap_name", text="Edit name")
+        row.operator("blosm.am_delete_ap", text="Delete")
     
     def drawApNameEditor(self, context):
         layout = self.layout

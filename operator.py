@@ -55,8 +55,8 @@ class BLOSM_OT_AmLoadApList(bpy.types.Operator):
             
 
 
-class BLOSM_OT_AmEditAssetPackage(bpy.types.Operator):
-    bl_idname = "blosm.am_edit_asset_package"
+class BLOSM_OT_AmEditAp(bpy.types.Operator):
+    bl_idname = "blosm.am_edit_ap"
     bl_label = "Load asset info"
     bl_options = {'INTERNAL'}
     
@@ -237,15 +237,27 @@ class BLOSM_OT_AmApplyApName(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
+    bl_idname = "blosm.am_delete_ap"
+    bl_label = "Delete asset package"
+    bl_description = "Delete asset package"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        print("Deleted")
+        return {'FINISHED'}
+
+
 _classes = (
     BLOSM_OT_AmLoadApList,
-    BLOSM_OT_AmEditAssetPackage,
+    BLOSM_OT_AmEditAp,
     BLOSM_OT_AmEditApName,
     BLOSM_OT_AmCopyAp,
     BLOSM_OT_AmInstallAssetPackage,
     BLOSM_OT_AmUpdateAssetPackage,
     BLOSM_OT_AmCancel,
-    BLOSM_OT_AmApplyApName
+    BLOSM_OT_AmApplyApName,
+    BLOSM_OT_AmDeleteAp
 )
 
 
