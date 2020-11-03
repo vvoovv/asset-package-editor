@@ -5,6 +5,7 @@ import bpy
 
 
 from . import assetPackages
+assetPackagesLookup = {}
 
 
 def _getAssetsDir(context):
@@ -15,6 +16,9 @@ def writeJson(jsonObj, jsonFilepath):
     with open(jsonFilepath, 'w', encoding='utf-8') as jsonFile:
         json.dump(jsonObj, jsonFile, ensure_ascii=False, indent=4)
 
+def getApListFilepath(context):
+    return os.path.join(_getAssetsDir(context), "asset_packages.json")
+
 
 class BLOSM_OT_AmLoadApList(bpy.types.Operator):
     bl_idname = "blosm.am_load_ap_list"
@@ -22,16 +26,18 @@ class BLOSM_OT_AmLoadApList(bpy.types.Operator):
     bl_description = "Load the list of asset packages"
     bl_options = {'INTERNAL'}
     
-    apListFileName = "asset_packages.json"
-    
     def execute(self, context):
         assetPackages.clear()
+        assetPackagesLookup.clear()
+        
         assetPackages.extend( self.getApListJson(context)["assetPackages"] )
+        assetPackagesLookup.update( (assetPackage[0],assetPackage) for assetPackage in assetPackages )
+        
         context.scene.blosmAm.state = "apSelection"
         return {'FINISHED'}
     
     def getApListJson(self, context):
-        apListFilepath = os.path.join(_getAssetsDir(context), self.apListFileName)
+        apListFilepath = getApListFilepath(context)
         
         # check if the file with the list of asset packages exists
         if not os.path.isfile(apListFilepath):
@@ -68,16 +74,17 @@ class BLOSM_OT_AmEditApName(bpy.types.Operator):
     def execute(self, context):
         assetPackage = context.scene.blosmAm.assetPackage
         
+        apInfo = assetPackagesLookup[assetPackage]
         context.scene.blosmAm.apDirName = assetPackage
-        context.scene.blosmAm.apName = "Name"
-        context.scene.blosmAm.apDescription = "Description"
+        context.scene.blosmAm.apName = apInfo[1]
+        context.scene.blosmAm.apDescription = apInfo[2]
         
         context.scene.blosmAm.state = "apNameEditor"
         return {'FINISHED'}
 
 
-class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
-    bl_idname = "blosm.am_copy_asset_package"
+class BLOSM_OT_AmCopyAp(bpy.types.Operator):
+    bl_idname = "blosm.am_copy_ap"
     bl_label = "Copy asset package"
     bl_options = {'INTERNAL'}
     
@@ -95,7 +102,10 @@ class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
                 counter += 1
             else:
                 break
-        assetPackages.append((apDirNameTarget, apDirNameTarget, apDirNameTarget))
+        apInfo = assetPackagesLookup[apDirName]
+        assetPackages.append((apDirNameTarget, "%s (copy)" % apInfo[1], "%s (copy)" % apInfo[2]))
+        assetPackagesLookup[apDirNameTarget] = assetPackages[-1]
+        writeJson( dict(assetPackages = assetPackages), getApListFilepath(context) )
         context.scene.blosmAm.assetPackage = apDirNameTarget
         # create a directory for the copy of the asset package <assetPackage>
         os.makedirs(targetDir)
@@ -105,8 +115,8 @@ class BLOSM_OT_AmCopyAssetPackage(bpy.types.Operator):
         self.copyAssetInfos(sourceDir, targetDir, apDirName)
         
         context.scene.blosmAm.apDirName = apDirNameTarget
-        context.scene.blosmAm.apName = "Name"
-        context.scene.blosmAm.apDescription = "Description"
+        context.scene.blosmAm.apName = assetPackages[-1][1]
+        context.scene.blosmAm.apDescription = assetPackages[-1][2]
         
         context.scene.blosmAm.state = "apNameEditor"
         
@@ -183,25 +193,59 @@ class BLOSM_OT_AmCancel(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class BLOSM_OT_AmApplyAssetPackageName(bpy.types.Operator):
-    bl_idname = "blosm.am_apply_asset_package_name"
+class BLOSM_OT_AmApplyApName(bpy.types.Operator):
+    bl_idname = "blosm.am_apply_ap_name"
     bl_label = "Apply"
     bl_description = "Apply asset package name"
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
-        print("Applied")
+        blosmAm = context.scene.blosmAm
+        apDirName = blosmAm.assetPackage
+        apInfo = assetPackagesLookup[apDirName]
+        
+        isDirty = False
+        if blosmAm.apDirName != apInfo[0]:
+            if blosmAm.apDirName in assetPackagesLookup:
+                self.report({'ERROR'}, "The folder '%s' for the asset package already exists" % blosmAm.apDirName)
+                return {'CANCELLED'}
+            try:
+                assetsDir = _getAssetsDir(context)
+                os.rename(
+                    os.path.join(assetsDir, apDirName),
+                    os.path.join(assetsDir, blosmAm.apDirName)
+                )
+            except Exception as _:
+                self.report({'ERROR'}, "Unable to create the folder '%s' for the asset package" % blosmAm.apDirName)
+                return {'CANCELLED'}
+            apInfo[0] = blosmAm.apDirName
+            assetPackagesLookup[blosmAm.apDirName] = apInfo
+            del assetPackagesLookup[apDirName]
+            blosmAm.assetPackage = blosmAm.apDirName
+            isDirty = True
+        if apInfo[1] != blosmAm.apName:
+            apInfo[1] = blosmAm.apName
+            isDirty = True
+        if apInfo[2] != blosmAm.apDescription:
+            apInfo[2] = blosmAm.apDescription
+            isDirty = True
+        
+        if isDirty:
+            writeJson (dict(assetPackages = assetPackages), getApListFilepath(context) )
+        
+        context.scene.blosmAm.state = "apSelection"
         return {'FINISHED'}
+
 
 _classes = (
     BLOSM_OT_AmLoadApList,
     BLOSM_OT_AmEditAssetPackage,
     BLOSM_OT_AmEditApName,
-    BLOSM_OT_AmCopyAssetPackage,
+    BLOSM_OT_AmCopyAp,
     BLOSM_OT_AmInstallAssetPackage,
     BLOSM_OT_AmUpdateAssetPackage,
     BLOSM_OT_AmCancel,
-    BLOSM_OT_AmApplyAssetPackageName
+    BLOSM_OT_AmApplyApName
 )
 
 

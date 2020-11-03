@@ -41,7 +41,7 @@ class AssetManager:
         row = layout.row()
         row.prop(am, "assetPackage")
         row.operator("blosm.am_edit_asset_package", text="Edit pack")
-        row.operator("blosm.am_copy_asset_package", text="Copy")
+        row.operator("blosm.am_copy_ap", text="Copy")
         row.operator("blosm.am_update_asset_package", text="Update")
         row.operator("blosm.am_edit_ap_name", text="Edit name")
     
@@ -54,7 +54,7 @@ class AssetManager:
         layout.prop(am, "apDescription")
         
         row = layout.row()
-        row.operator("blosm.am_apply_asset_package_name")
+        row.operator("blosm.am_apply_ap_name")
         row.operator("blosm.am_cancel")
 
 
@@ -73,7 +73,7 @@ class BLOSM_PT_Panel(bpy.types.Panel, AssetManager):
 _enumAssetPackages = []
 def getAssetPackages(self, context):
     _enumAssetPackages.clear()
-    return ( (assetPackage[1], assetPackage[1], assetPackage[2]) for assetPackage in assetPackages )
+    return ( (assetPackage[0], assetPackage[1], assetPackage[2]) for assetPackage in assetPackages )
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
