@@ -11,12 +11,12 @@ bl_info = {
 }
 
 assetPackages = []
+assetInfo = [0]
 
 
 import bpy
 from .operator import register as operatorRegister
 from .operator import unregister as operatorUnregister
-from .operator import assetPackages
 
 
 class AssetManager:
@@ -32,6 +32,8 @@ class AssetManager:
             self.drawApNameEditor(context)
         elif am.state == "apSelection":
             self.drawApSelection(context)
+        elif am.state == "apEditor":
+            self.drawApEditor(context)
     
     def drawApSelection(self, context):
         layout = self.layout
@@ -45,6 +47,8 @@ class AssetManager:
         row.operator("blosm.am_update_asset_package", text="Update")
         row.operator("blosm.am_edit_ap_name", text="Edit name")
         row.operator("blosm.am_delete_ap", text="Delete")
+        
+        layout.operator("blosm.am_select_building")
     
     def drawApNameEditor(self, context):
         layout = self.layout
@@ -57,6 +61,13 @@ class AssetManager:
         row = layout.row()
         row.operator("blosm.am_apply_ap_name")
         row.operator("blosm.am_cancel")
+    
+    def drawApEditor(self, context):
+        layout = self.layout
+        am = context.scene.blosmAm
+        
+        layout.label(text=am.assetPackage)
+        layout.prop(am, "building")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -74,7 +85,19 @@ class BLOSM_PT_Panel(bpy.types.Panel, AssetManager):
 _enumAssetPackages = []
 def getAssetPackages(self, context):
     _enumAssetPackages.clear()
-    return ( (assetPackage[0], assetPackage[1], assetPackage[2]) for assetPackage in assetPackages )
+    _enumAssetPackages.extend(
+        (assetPackage[0], assetPackage[1], assetPackage[2]) for assetPackage in assetPackages
+    )
+    return _enumAssetPackages
+
+
+_enumBuildings = []
+def getBuildings(self, context):
+    _enumBuildings.clear()
+    _enumBuildings.extend(
+        (str(bldgIndex), bldg["use"] if "use" in bldg else "any", bldg["use"] if "use" in bldg else "any") for bldgIndex,bldg in enumerate(assetInfo[0]["buildings"])
+    )
+    return _enumBuildings
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -112,6 +135,12 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
     apDescription: bpy.props.StringProperty(
         name = "Description",
         description = "Description for the asset package"
+    )
+    
+    building: bpy.props.EnumProperty(
+        name = "Building entry",
+        items = getBuildings,
+        description = "Building entry for editing"
     )
 
 

@@ -6,6 +6,7 @@ import bpy
 
 from . import assetPackages
 assetPackagesLookup = {}
+from . import assetInfo
 
 
 def _getAssetsDir(context):
@@ -51,24 +52,29 @@ class BLOSM_OT_AmLoadApList(bpy.types.Operator):
             apListJson = json.load(jsonFile)
         
         return apListJson
-        
-            
 
 
 class BLOSM_OT_AmEditAp(bpy.types.Operator):
     bl_idname = "blosm.am_edit_ap"
-    bl_label = "Load asset info"
+    bl_label = "Edit asset package"
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
         assetPackage = context.scene.blosmAm.assetPackage
-        print(assetPackage)
+        
+        with open(
+            os.path.join(_getAssetsDir(context), assetPackage, "asset_info", "asset_info.json"),
+            'r'
+        ) as jsonFile:
+            assetInfo[0] = json.load(jsonFile)
+        
+        context.scene.blosmAm.state = "apEditor"
         return {'FINISHED'}
 
 
 class BLOSM_OT_AmEditApName(bpy.types.Operator):
     bl_idname = "blosm.am_edit_ap_name"
-    bl_label = "Load asset info"
+    bl_label = "Edit asset package name"
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
@@ -248,6 +254,27 @@ class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
+    bl_idname = "blosm.am_select_building"
+    bl_label = "Select building entry"
+    bl_options = {'INTERNAL'}
+    bl_property = "buildingList"
+    bl_options = {'INTERNAL'}
+
+    buildingList: bpy.props.EnumProperty(
+        name = "Building list",
+        items = [('one', 'Any', "", 'PRESET', 1), ('two', 'PropertyGroup', "", 'PRESET', 2), ('three', 'type', "", 'PRESET', 3)]
+    )
+    
+    def execute(self, context):
+        print(self.buildingList)
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
+
+
 _classes = (
     BLOSM_OT_AmLoadApList,
     BLOSM_OT_AmEditAp,
@@ -257,7 +284,8 @@ _classes = (
     BLOSM_OT_AmUpdateAssetPackage,
     BLOSM_OT_AmCancel,
     BLOSM_OT_AmApplyApName,
-    BLOSM_OT_AmDeleteAp
+    BLOSM_OT_AmDeleteAp,
+    BLOSM_OT_AmSelectBuilding
 )
 
 
