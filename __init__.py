@@ -10,11 +10,19 @@ bl_info = {
     "category": "Misc",
 }
 
+
 assetPackages = []
 assetInfo = [0]
+assetPackagesLookup = {}
+imagePreviews = [0]
+
+def getAssetsDir(context):
+    return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
 
 
+import os
 import bpy
+import bpy.utils.previews
 from .operator import register as operatorRegister
 from .operator import unregister as operatorUnregister
 
@@ -66,8 +74,15 @@ class AssetManager:
         layout = self.layout
         am = context.scene.blosmAm
         
-        layout.label(text=am.assetPackage)
+        layout.label(text=assetPackagesLookup[am.assetPackage][1])
         layout.prop(am, "building")
+        #layout.prop(am, "buildingAsset")
+        box = layout.box()
+        box.template_icon_view(am, "buildingAsset", show_labels=True)
+        
+        row = box.row(align=True)
+        row.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
+        row.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -98,6 +113,49 @@ def getBuildings(self, context):
         (str(bldgIndex), bldg["use"] if "use" in bldg else "any", bldg["use"] if "use" in bldg else "any") for bldgIndex,bldg in enumerate(assetInfo[0]["buildings"])
     )
     return _enumBuildings
+
+
+_enumBuildingAssets = []
+def getBuildingAssets(self, context):
+    _enumBuildingAssets.clear()
+    buildingEntry = assetInfo[0]["buildings"][int(context.scene.blosmAm.building)]
+    
+    # add building parts
+    if "parts" in buildingEntry:
+        loadImagePreviews(buildingEntry["parts"], context)
+        # <p> stands for 'part'
+        _enumBuildingAssets.extend(
+            (
+                "p%s" % partIndex,
+                part["name"],
+                part["name"],
+                imagePreviews[0].get(os.path.join(part["path"], part["name"])).icon_id,
+                partIndex
+            ) for partIndex, part in enumerate(buildingEntry["parts"])
+        )
+    # add building cladding
+    if "cladding" in buildingEntry:
+        loadImagePreviews(buildingEntry["cladding"], context)
+        # <c> stands for 'cladding'
+        _enumBuildingAssets.extend(
+            (
+                "c%s" % claddingIndex,
+                cladding["name"],
+                cladding["name"],
+                imagePreviews[0].get(os.path.join(cladding["path"], cladding["name"])).icon_id,
+                claddingIndex
+            ) for claddingIndex, cladding in enumerate(buildingEntry["cladding"])
+        )
+    return _enumBuildingAssets
+
+
+def loadImagePreviews(imageList, context):
+    for imageEntry in imageList:
+        # generates a thumbnail preview for a file.
+        name = os.path.join(imageEntry["path"], imageEntry["name"])
+        filepath = os.path.join(getAssetsDir(context), imageEntry["path"][1:], imageEntry["name"])
+        if not imagePreviews[0].get(name) and os.path.isfile(filepath):
+            imagePreviews[0].load(name, filepath, 'IMAGE')
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -138,9 +196,15 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
     )
     
     building: bpy.props.EnumProperty(
-        name = "Building entry",
+        name = "Building asset collection",
         items = getBuildings,
-        description = "Building entry for editing"
+        description = "Building asset collection for editing"
+    )
+    
+    buildingAsset: bpy.props.EnumProperty(
+        name = "Asset entry",
+        items = getBuildingAssets,
+        description = "Asset entry for the selected building"
     )
 
 
@@ -152,6 +216,7 @@ def register():
     bpy.utils.register_class(BlosmAmProperties)
     operatorRegister()
     bpy.types.Scene.blosmAm = bpy.props.PointerProperty(type=BlosmAmProperties)
+    imagePreviews[0] = bpy.utils.previews.new()
 
 
 def unregister():
@@ -160,6 +225,8 @@ def unregister():
     bpy.utils.unregister_class(BLOSM_PT_Panel)
     bpy.utils.unregister_class(BlosmAmProperties)
     operatorUnregister()
+    imagePreviews[0].close()
+    imagePreviews.clear()
 
 
 if __name__ == "__main__":

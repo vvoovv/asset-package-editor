@@ -4,13 +4,7 @@ from distutils.dir_util import copy_tree
 import bpy
 
 
-from . import assetPackages
-assetPackagesLookup = {}
-from . import assetInfo
-
-
-def _getAssetsDir(context):
-    return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
+from . import assetPackages, assetInfo, assetPackagesLookup, getAssetsDir
 
 
 def writeJson(jsonObj, jsonFilepath):
@@ -18,7 +12,7 @@ def writeJson(jsonObj, jsonFilepath):
         json.dump(jsonObj, jsonFile, ensure_ascii=False, indent=4)
 
 def getApListFilepath(context):
-    return os.path.join(_getAssetsDir(context), "asset_packages.json")
+    return os.path.join(getAssetsDir(context), "asset_packages.json")
 
 
 class BLOSM_OT_AmLoadApList(bpy.types.Operator):
@@ -63,7 +57,7 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
         assetPackage = context.scene.blosmAm.assetPackage
         
         with open(
-            os.path.join(_getAssetsDir(context), assetPackage, "asset_info", "asset_info.json"),
+            os.path.join(getAssetsDir(context), assetPackage, "asset_info", "asset_info.json"),
             'r'
         ) as jsonFile:
             assetInfo[0] = json.load(jsonFile)
@@ -97,7 +91,7 @@ class BLOSM_OT_AmCopyAp(bpy.types.Operator):
     def execute(self, context):
         # 'ap' stands for 'asset package'
         apDirName = context.scene.blosmAm.assetPackage
-        assetsDir = _getAssetsDir(context)
+        assetsDir = getAssetsDir(context)
         sourceDir = os.path.join(assetsDir, apDirName)
         # find a name for the target directory
         counter = 1
@@ -216,7 +210,7 @@ class BLOSM_OT_AmApplyApName(bpy.types.Operator):
                 self.report({'ERROR'}, "The folder '%s' for the asset package already exists" % blosmAm.apDirName)
                 return {'CANCELLED'}
             try:
-                assetsDir = _getAssetsDir(context)
+                assetsDir = getAssetsDir(context)
                 os.rename(
                     os.path.join(assetsDir, apDirName),
                     os.path.join(assetsDir, blosmAm.apDirName)
@@ -275,6 +269,28 @@ class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmAddBldgAsset(bpy.types.Operator):
+    bl_idname = "blosm.am_add_bldg_asset"
+    bl_label = "Add"
+    bl_description = "Add a building asset"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("Added")
+        return {'FINISHED'}
+
+
+class BLOSM_OT_AmDeleteBldgAsset(bpy.types.Operator):
+    bl_idname = "blosm.am_delete_bldg_asset"
+    bl_label = "Delete"
+    bl_description = "Delete the building asset"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("Deleted")
+        return {'FINISHED'}
+
+
 _classes = (
     BLOSM_OT_AmLoadApList,
     BLOSM_OT_AmEditAp,
@@ -285,7 +301,9 @@ _classes = (
     BLOSM_OT_AmCancel,
     BLOSM_OT_AmApplyApName,
     BLOSM_OT_AmDeleteAp,
-    BLOSM_OT_AmSelectBuilding
+    BLOSM_OT_AmSelectBuilding,
+    BLOSM_OT_AmAddBldgAsset,
+    BLOSM_OT_AmDeleteBldgAsset
 )
 
 
