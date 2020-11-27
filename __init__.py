@@ -74,15 +74,27 @@ class AssetManager:
         layout = self.layout
         am = context.scene.blosmAm
         
-        layout.label(text=assetPackagesLookup[am.assetPackage][1])
-        layout.prop(am, "building")
+        row = layout.row()
+        row.label(text=assetPackagesLookup[am.assetPackage][1])
+        row.operator("blosm.am_save_ap")
+        row.operator("blosm.am_cancel")
+        
+        row = layout.row()
+        row.prop(am, "building")
+        row2 = row.row(align=True)
+        row2.operator("blosm.am_add_building", text='', icon='FILE_NEW')
+        row2.operator("blosm.am_delete_building", text='', icon='PANEL_CLOSE')
         #layout.prop(am, "buildingAsset")
         box = layout.box()
-        box.template_icon_view(am, "buildingAsset", show_labels=True)
+        row = box.row()
+        row.template_icon_view(am, "buildingAsset", show_labels=True)
         
-        row = box.row(align=True)
-        row.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
-        row.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
+        if am.showAdvancedOptions:
+            column = row.column(align=True)
+            column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
+            column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
+        
+        box.prop(am, "showAdvancedOptions")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -130,6 +142,7 @@ def getBuildingAssets(self, context):
                 part["name"],
                 part["name"],
                 imagePreviews[0].get(os.path.join(part["path"], part["name"])).icon_id,
+                # index is required to show the icons
                 partIndex
             ) for partIndex, part in enumerate(buildingEntry["parts"])
         )
@@ -143,6 +156,7 @@ def getBuildingAssets(self, context):
                 cladding["name"],
                 cladding["name"],
                 imagePreviews[0].get(os.path.join(cladding["path"], cladding["name"])).icon_id,
+                # index is required to show the icons
                 claddingIndex
             ) for claddingIndex, cladding in enumerate(buildingEntry["cladding"])
         )
@@ -193,6 +207,12 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
     apDescription: bpy.props.StringProperty(
         name = "Description",
         description = "Description for the asset package"
+    )
+    
+    showAdvancedOptions: bpy.props.BoolProperty(
+        name = "Show advanced options",
+        description = "Show advanced options, for example to add an asset for the building asset collection",
+        default = False
     )
     
     building: bpy.props.EnumProperty(

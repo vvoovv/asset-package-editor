@@ -248,6 +248,17 @@ class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmSaveAp(bpy.types.Operator):
+    bl_idname = "blosm.am_save_ap"
+    bl_label = "Save"
+    bl_description = "Save the asset package"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("Save")
+        return {'FINISHED'}
+
+
 class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
     bl_idname = "blosm.am_select_building"
     bl_label = "Select building entry"
@@ -266,6 +277,28 @@ class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
     
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
+
+
+class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
+    bl_idname = "blosm.am_add_building"
+    bl_label = "Add"
+    bl_description = "Add a building asset collection"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("Added")
+        return {'FINISHED'}
+
+
+class BLOSM_OT_AmDeleteBuilding(bpy.types.Operator):
+    bl_idname = "blosm.am_delete_building"
+    bl_label = "Delete"
+    bl_description = "Delete the building asset collection"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("Deleted")
         return {'FINISHED'}
 
 
@@ -301,7 +334,10 @@ _classes = (
     BLOSM_OT_AmCancel,
     BLOSM_OT_AmApplyApName,
     BLOSM_OT_AmDeleteAp,
+    BLOSM_OT_AmSaveAp,
     BLOSM_OT_AmSelectBuilding,
+    BLOSM_OT_AmAddBuilding,
+    BLOSM_OT_AmDeleteBuilding,
     BLOSM_OT_AmAddBldgAsset,
     BLOSM_OT_AmDeleteBldgAsset
 )
