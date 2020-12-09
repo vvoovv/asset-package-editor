@@ -84,6 +84,9 @@ class AssetManager:
         row2 = row.row(align=True)
         row2.operator("blosm.am_add_building", text='', icon='FILE_NEW')
         row2.operator("blosm.am_delete_building", text='', icon='PANEL_CLOSE')
+        
+        layout.prop(am, "buildingUse")
+        
         #layout.prop(am, "buildingAsset")
         box = layout.box()
         row = box.row()
@@ -95,6 +98,8 @@ class AssetManager:
             column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
         
         box.prop(am, "showAdvancedOptions")
+        
+        layout.prop(am, "featureWidthM")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -122,7 +127,16 @@ _enumBuildings = []
 def getBuildings(self, context):
     _enumBuildings.clear()
     _enumBuildings.extend(
-        (str(bldgIndex), bldg["use"] if "use" in bldg else "any", bldg["use"] if "use" in bldg else "any") for bldgIndex,bldg in enumerate(assetInfo[0]["buildings"])
+        (
+            str(bldgIndex),
+            
+            "%s%s" % (
+                "* " if bldg["_dirty"] else '',
+                bldg["use"],
+            ),
+            
+            bldg["use"]
+        ) for bldgIndex,bldg in enumerate(assetInfo[0]["buildings"])
     )
     return _enumBuildings
 
@@ -172,6 +186,34 @@ def loadImagePreviews(imageList, context):
             imagePreviews[0].load(name, filepath, 'IMAGE')
 
 
+#
+# Update functions for <bpy.props.EnumProperty> fields
+#
+
+def updateBuilding(self, context):
+    buildingEntry = assetInfo[0]["buildings"][int(self.building)]
+    self.buildingUse = buildingEntry["use"]
+    self.featureWidthM = buildingEntry["parts"][0]["featureWidthM"]
+    
+
+def updateBuildingUse(self, context):
+    buildingEntry = assetInfo[0]["buildings"][int(self.building)]
+    
+    if self.buildingUse != buildingEntry["use"]:
+        buildingEntry["use"] = self.buildingUse
+        if not buildingEntry["_dirty"]:
+            buildingEntry["_dirty"] = True
+
+
+def updateFeatureWidthM(self, context):
+    buildingEntry = assetInfo[0]["buildings"][int(self.building)]
+    
+    if self.featureWidthM != buildingEntry["parts"][0]["featureWidthM"]:
+        buildingEntry["parts"][0]["featureWidthM"] = self.featureWidthM
+        if not buildingEntry["_dirty"]:
+            buildingEntry["_dirty"] = True
+
+
 class BlosmAmProperties(bpy.types.PropertyGroup):
     
     assetPackage: bpy.props.EnumProperty(
@@ -218,13 +260,41 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
     building: bpy.props.EnumProperty(
         name = "Building asset collection",
         items = getBuildings,
-        description = "Building asset collection for editing"
+        description = "Building asset collection for editing",
+        update = updateBuilding
     )
     
     buildingAsset: bpy.props.EnumProperty(
         name = "Asset entry",
         items = getBuildingAssets,
         description = "Asset entry for the selected building"
+    )
+    
+    #
+    # The properties for editing a building asset collection
+    #
+    buildingUse: bpy.props.EnumProperty(
+        name = "Building use",
+        items = (
+            ("apartments", "apartments building", "Apartments"),
+            ("single_family", "single family house", "Single family house"),
+            ("office", "office building", "Office building"),
+            ("mall", "mall", "Mall"),
+            ("retail", "retail building", "Retail building"),
+            ("hotel", "hotel", "Hotel"),
+            ("school", "school", "School"),
+            ("university", "university", "University"),
+            ("any", "any building type", "Any building type")
+        ),
+        description = "Buildin usage",
+        update = updateBuildingUse
+    )
+    
+    featureWidthM: bpy.props.FloatProperty(
+        name = "Feature width in meters",
+        unit = 'LENGTH',
+        subtype = 'UNSIGNED',
+        update = updateFeatureWidthM
     )
 
 

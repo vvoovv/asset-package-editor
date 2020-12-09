@@ -54,13 +54,26 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        assetPackage = context.scene.blosmAm.assetPackage
+        am = context.scene.blosmAm
+        assetPackage = am.assetPackage
         
         with open(
             os.path.join(getAssetsDir(context), assetPackage, "asset_info", "asset_info.json"),
             'r'
         ) as jsonFile:
             assetInfo[0] = json.load(jsonFile)
+        
+        # mark all building asset collection as NOT dirty
+        for buildingEntry in assetInfo[0]["buildings"]:
+            buildingEntry["_dirty"] = False
+            if not "use" in buildingEntry:
+                buildingEntry["use"] = "any"
+        
+        # set the active building asset collection to element with the index 0
+        am.building = "0"
+        buildingEntry = assetInfo[0]["buildings"][0]
+        am.buildingUse = buildingEntry["use"]
+        am.featureWidthM = buildingEntry["parts"][0]["featureWidthM"]
         
         context.scene.blosmAm.state = "apEditor"
         return {'FINISHED'}
