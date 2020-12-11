@@ -4,7 +4,7 @@ from distutils.dir_util import copy_tree
 import bpy
 
 
-from . import assetPackages, assetInfo, assetPackagesLookup, getAssetsDir
+from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir
 
 
 def writeJson(jsonObj, jsonFilepath):
@@ -55,26 +55,28 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
     
     def execute(self, context):
         am = context.scene.blosmAm
-        assetPackage = am.assetPackage
         
         with open(
-            os.path.join(getAssetsDir(context), assetPackage, "asset_info", "asset_info.json"),
+            os.path.join(getAssetsDir(context), am.assetPackage, "asset_info", "asset_info.json"),
             'r'
         ) as jsonFile:
-            assetInfo[0] = json.load(jsonFile)
+            assetPackage[0] = json.load(jsonFile)
         
         # mark all building asset collection as NOT dirty
-        for buildingEntry in assetInfo[0]["buildings"]:
+        for buildingEntry in assetPackage[0]["buildings"]:
             buildingEntry["_dirty"] = False
             if not "use" in buildingEntry:
                 buildingEntry["use"] = "any"
         
         # set the active building asset collection to element with the index 0
         am.building = "0"
-        buildingEntry = assetInfo[0]["buildings"][0]
+        # pick up the building asset collection with the index 0
+        buildingEntry = assetPackage[0]["buildings"][0]
         am.buildingUse = buildingEntry["use"]
-        am.assetCategory = buildingEntry["assets"][0]["category"]
-        am.featureWidthM = buildingEntry["assets"][0]["featureWidthM"]
+        # pick up the asset info with the index 0
+        assetInfo = buildingEntry["assets"][0]
+        am.assetCategory = assetInfo["category"]
+        am.featureWidthM = assetInfo["featureWidthM"]
         
         context.scene.blosmAm.state = "apEditor"
         return {'FINISHED'}
