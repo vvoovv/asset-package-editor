@@ -73,6 +73,7 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
         am.building = "0"
         buildingEntry = assetInfo[0]["buildings"][0]
         am.buildingUse = buildingEntry["use"]
+        am.assetCategory = buildingEntry["assets"][0]["category"]
         am.featureWidthM = buildingEntry["assets"][0]["featureWidthM"]
         
         context.scene.blosmAm.state = "apEditor"

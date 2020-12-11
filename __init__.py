@@ -99,6 +99,8 @@ class AssetManager:
         
         box.prop(am, "showAdvancedOptions")
         
+        layout.prop(am, "assetCategory")
+        
         layout.prop(am, "featureWidthM")
 
 
@@ -177,6 +179,8 @@ def loadImagePreviews(imageList, context):
 def updateBuilding(self, context):
     buildingEntry = assetInfo[0]["buildings"][int(self.building)]
     self.buildingUse = buildingEntry["use"]
+    
+    self.assetCategory = buildingEntry["assets"][0]["category"]
     self.featureWidthM = buildingEntry["assets"][0]["featureWidthM"]
     
 
@@ -199,7 +203,12 @@ def updateFeatureWidthM(self, context):
 
 
 def updateAssetCategory(self, context):
-    pass
+    buildingEntry = assetInfo[0]["buildings"][int(self.building)]
+    
+    if self.assetCategory != buildingEntry["assets"][0]["category"]:
+        buildingEntry["assets"][0]["category"] = self.assetCategory
+        if not buildingEntry["_dirty"]:
+            buildingEntry["_dirty"] = True
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -281,7 +290,8 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
     assetCategory: bpy.props.EnumProperty(
         name = "Asset category",
         items = (
-        
+            ("part", "building part", "Building part"),
+            ("cladding", "cladding", "Facade or roof cladding")
         ),
         description = "Asset category",
         update = updateAssetCategory
