@@ -146,34 +146,18 @@ def getBuildingAssets(self, context):
     _enumBuildingAssets.clear()
     buildingEntry = assetInfo[0]["buildings"][int(context.scene.blosmAm.building)]
     
-    # add building parts
-    if "parts" in buildingEntry:
-        loadImagePreviews(buildingEntry["parts"], context)
-        # <p> stands for 'part'
-        _enumBuildingAssets.extend(
-            (
-                "p%s" % partIndex,
-                part["name"],
-                part["name"],
-                imagePreviews[0].get(os.path.join(part["path"], part["name"])).icon_id,
-                # index is required to show the icons
-                partIndex
-            ) for partIndex, part in enumerate(buildingEntry["parts"])
-        )
-    # add building cladding
-    if "cladding" in buildingEntry:
-        loadImagePreviews(buildingEntry["cladding"], context)
-        # <c> stands for 'cladding'
-        _enumBuildingAssets.extend(
-            (
-                "c%s" % claddingIndex,
-                cladding["name"],
-                cladding["name"],
-                imagePreviews[0].get(os.path.join(cladding["path"], cladding["name"])).icon_id,
-                # index is required to show the icons
-                claddingIndex
-            ) for claddingIndex, cladding in enumerate(buildingEntry["cladding"])
-        )
+    # add assets
+    loadImagePreviews(buildingEntry["assets"], context)
+    _enumBuildingAssets.extend(
+        (
+            str(assetIndex),
+            assetInfo["name"],
+            assetInfo["name"],
+            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id,
+            # index is required to show the icons
+            assetIndex
+        ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
+    )
     return _enumBuildingAssets
 
 
@@ -193,7 +177,7 @@ def loadImagePreviews(imageList, context):
 def updateBuilding(self, context):
     buildingEntry = assetInfo[0]["buildings"][int(self.building)]
     self.buildingUse = buildingEntry["use"]
-    self.featureWidthM = buildingEntry["parts"][0]["featureWidthM"]
+    self.featureWidthM = buildingEntry["assets"][0]["featureWidthM"]
     
 
 def updateBuildingUse(self, context):
@@ -208,10 +192,14 @@ def updateBuildingUse(self, context):
 def updateFeatureWidthM(self, context):
     buildingEntry = assetInfo[0]["buildings"][int(self.building)]
     
-    if self.featureWidthM != buildingEntry["parts"][0]["featureWidthM"]:
-        buildingEntry["parts"][0]["featureWidthM"] = self.featureWidthM
+    if self.featureWidthM != buildingEntry["assets"][0]["featureWidthM"]:
+        buildingEntry["assets"][0]["featureWidthM"] = self.featureWidthM
         if not buildingEntry["_dirty"]:
             buildingEntry["_dirty"] = True
+
+
+def updateAssetCategory(self, context):
+    pass
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -286,8 +274,17 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
             ("university", "university", "University"),
             ("any", "any building type", "Any building type")
         ),
-        description = "Buildin usage",
+        description = "Building usage",
         update = updateBuildingUse
+    )
+    
+    assetCategory: bpy.props.EnumProperty(
+        name = "Asset category",
+        items = (
+        
+        ),
+        description = "Asset category",
+        update = updateAssetCategory
     )
     
     featureWidthM: bpy.props.FloatProperty(
