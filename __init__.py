@@ -21,18 +21,26 @@ assetAttr2AmAttr = {
     "category": "assetCategory",
     "featureWidthM": "featureWidthM",
     "featureLpx": "featureLpx",
-    "featureRpx": "featureRpx"
+    "featureRpx": "featureRpx",
+    "numTilesU": "numTilesU",
+    "numTilesV": "numTilesV",
+    "textureWidthM": "textureWidthM"
 }
 
 def getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
 
 def updateAttributes(am, assetInfo):
-    am.assetCategory = assetInfo["category"]
-    if am.assetCategory == "part":
+    category = assetInfo["category"]
+    am.assetCategory = category
+    if category == "part":
         am.featureWidthM = assetInfo["featureWidthM"]
         am.featureLpx = assetInfo["featureLpx"]
         am.featureRpx = assetInfo["featureRpx"]
+        am.numTilesU = assetInfo["numTilesU"]
+        am.numTilesV = assetInfo["numTilesV"]
+    elif category == "cladding":
+        am.textureWidthM = assetInfo["textureWidthM"]
 
 
 import os
@@ -114,12 +122,16 @@ class AssetManager:
         
         box.prop(am, "showAdvancedOptions")
         
-        layout.prop(am, "assetCategory")
+        box.prop(am, "assetCategory")
         
         if am.assetCategory == "part":
-            layout.prop(am, "featureWidthM")
-            layout.prop(am, "featureLpx")
-            layout.prop(am, "featureRpx")
+            box.prop(am, "featureWidthM")
+            box.prop(am, "featureLpx")
+            box.prop(am, "featureRpx")
+            box.prop(am, "numTilesU")
+            box.prop(am, "numTilesV")
+        elif am.assetCategory == "cladding":
+            layout.prop(am, "textureWidthM")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -230,17 +242,23 @@ def updateBuildingUse(self, context):
 def updateAssetCategory(self, context):
     updateAttribute("category", self, context)
 
-
 def updateFeatureWidthM(self, context):
-    updateAttribute("use", self, context)
-
+    updateAttribute("featureWidthM", self, context)
 
 def updateFeatureLpx(self, context):
     updateAttribute("featureLpx", self, context)
 
-
 def updateFeatureRpx(self, context):
     updateAttribute("featureRpx", self, context)
+
+def updateNumTilesU(self, context):
+    updateAttribute("numTilesU", self, context)
+
+def updateNumTilesV(self, context):
+    updateAttribute("numTilesV", self, context)
+
+def updateTextureWidthM(self, context):
+    updateAttribute("textureWidthM", self, context)
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -326,7 +344,7 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
             ("part", "building part", "Building part"),
             ("cladding", "cladding", "Facade or roof cladding")
         ),
-        description = "Asset category",
+        description = "Asset category (building part or cladding)",
         update = updateAssetCategory
     )
     
@@ -334,19 +352,48 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         name = "Feature width in meters",
         unit = 'LENGTH',
         subtype = 'UNSIGNED',
+        default = 1.,
+        description = "The width in meters of the texture feature (for example, a window)",
         update = updateFeatureWidthM
     )
     
     featureLpx: bpy.props.IntProperty(
         name = "Feature left coordinate in pixels",
         subtype = 'PIXEL',
+        description = "The left coordinate in pixels of the texture feature (for example, a window)",
         update = updateFeatureLpx
     )
     
     featureRpx: bpy.props.IntProperty(
-        name = "Feature left coordinate in pixels",
+        name = "Feature right coordinate in pixels",
         subtype = 'PIXEL',
+        description = "The right coordinate in pixels of the texture feature (for example, a window)",
         update = updateFeatureRpx
+    )
+    
+    numTilesU: bpy.props.IntProperty(
+        name = "Number of tiles horizontally",
+        subtype = 'UNSIGNED',
+        description = "The number of tiles in the texture in the horizontal direction",
+        min = 1,
+        update = updateNumTilesU
+    )
+    
+    numTilesV: bpy.props.IntProperty(
+        name = "Number of tiles vertically",
+        subtype = 'UNSIGNED',
+        description = "The number of tiles in the texture in the vertical direction",
+        min = 1,
+        update = updateNumTilesV
+    )
+    
+    textureWidthM: bpy.props.FloatProperty(
+        name = "Texture width in meters",
+        unit = 'LENGTH',
+        subtype = 'UNSIGNED',
+        default = 1.,
+        description = "The texture width in meters",
+        update = updateTextureWidthM
     )
 
 # Registration
