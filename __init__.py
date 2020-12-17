@@ -16,9 +16,23 @@ assetPackages = []
 assetPackage = [0]
 assetPackagesLookup = {}
 imagePreviews = [0]
+# a mapping between an asset attribute in a JSON file and the attribute of <BlosmAmProperties>
+assetAttr2AmAttr = {
+    "category": "assetCategory",
+    "featureWidthM": "featureWidthM",
+    "featureLpx": "featureLpx",
+    "featureRpx": "featureRpx"
+}
 
 def getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
+
+def updateAttributes(am, assetInfo):
+    am.assetCategory = assetInfo["category"]
+    if am.assetCategory == "part":
+        am.featureWidthM = assetInfo["featureWidthM"]
+        am.featureLpx = assetInfo["featureLpx"]
+        am.featureRpx = assetInfo["featureRpx"]
 
 
 import os
@@ -102,7 +116,10 @@ class AssetManager:
         
         layout.prop(am, "assetCategory")
         
-        layout.prop(am, "featureWidthM")
+        if am.assetCategory == "part":
+            layout.prop(am, "featureWidthM")
+            layout.prop(am, "featureLpx")
+            layout.prop(am, "featureRpx")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -181,7 +198,6 @@ def updateBuilding(self, context):
     buildingEntry = assetPackage[0]["buildings"][int(self.building)]
     self.buildingUse = buildingEntry["use"]
     self.buildingAsset = "0"
-    
     #updateBuildingAsset(self, context)
 
 
@@ -189,8 +205,17 @@ def updateBuildingAsset(self, context):
     buildingEntry = assetPackage[0]["buildings"][int(self.building)]
     assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
     
-    self.assetCategory = assetInfo["category"]
-    self.featureWidthM = assetInfo["featureWidthM"]
+    updateAttributes(self, assetInfo)
+
+
+def updateAttribute(attr, self, context):
+    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
+    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
+    
+    if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
+        assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
+        if not buildingEntry["_dirty"]:
+            buildingEntry["_dirty"] = True
 
 
 def updateBuildingUse(self, context):
@@ -202,24 +227,20 @@ def updateBuildingUse(self, context):
             buildingEntry["_dirty"] = True
 
 
-def updateFeatureWidthM(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
-    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
-    
-    if self.featureWidthM != assetInfo["featureWidthM"]:
-        assetInfo["featureWidthM"] = self.featureWidthM
-        if not buildingEntry["_dirty"]:
-            buildingEntry["_dirty"] = True
-
-
 def updateAssetCategory(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
-    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
-    
-    if self.assetCategory != assetInfo["category"]:
-        assetInfo["category"] = self.assetCategory
-        if not buildingEntry["_dirty"]:
-            buildingEntry["_dirty"] = True
+    updateAttribute("category", self, context)
+
+
+def updateFeatureWidthM(self, context):
+    updateAttribute("use", self, context)
+
+
+def updateFeatureLpx(self, context):
+    updateAttribute("featureLpx", self, context)
+
+
+def updateFeatureRpx(self, context):
+    updateAttribute("featureRpx", self, context)
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -315,7 +336,18 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         subtype = 'UNSIGNED',
         update = updateFeatureWidthM
     )
-
+    
+    featureLpx: bpy.props.IntProperty(
+        name = "Feature left coordinate in pixels",
+        subtype = 'PIXEL',
+        update = updateFeatureLpx
+    )
+    
+    featureRpx: bpy.props.IntProperty(
+        name = "Feature left coordinate in pixels",
+        subtype = 'PIXEL',
+        update = updateFeatureRpx
+    )
 
 # Registration
 

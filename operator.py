@@ -4,7 +4,7 @@ from distutils.dir_util import copy_tree
 import bpy
 
 
-from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir
+from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir, updateAttributes
 
 
 def writeJson(jsonObj, jsonFilepath):
@@ -72,11 +72,10 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
         am.building = "0"
         # pick up the building asset collection with the index 0
         buildingEntry = assetPackage[0]["buildings"][0]
-        am.buildingUse = buildingEntry["use"]
         # pick up the asset info with the index 0
         assetInfo = buildingEntry["assets"][0]
-        am.assetCategory = assetInfo["category"]
-        am.featureWidthM = assetInfo["featureWidthM"]
+        am.buildingUse = buildingEntry["use"]
+        updateAttributes(am, assetInfo)
         
         context.scene.blosmAm.state = "apEditor"
         return {'FINISHED'}
