@@ -27,6 +27,24 @@ assetAttr2AmAttr = {
     "textureWidthM": "textureWidthM"
 }
 
+defaults = dict(
+    texture = dict(
+        part = dict(
+            category = "part",
+            featureWidthM = 1.,
+            featureLpx = 0,
+            featureRpx = 100,
+            numTilesU = 2,
+            numTilesV = 2
+        ),
+        cladding = dict(
+            category = "cladding",
+            textureWidthM = 1.
+        )
+    ),
+    mesh = dict()
+)
+
 def getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
 
@@ -220,14 +238,18 @@ def updateBuildingAsset(self, context):
     updateAttributes(self, assetInfo)
 
 
-def updateAttribute(attr, self, context):
+def _updateAttribute(attr, self, context):
     buildingEntry = assetPackage[0]["buildings"][int(self.building)]
     assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
     
     if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
         assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
-        if not buildingEntry["_dirty"]:
-            buildingEntry["_dirty"] = True
+        _markDirty(buildingEntry)
+
+
+def _markDirty(buildingEntry):
+    if not buildingEntry["_dirty"]:
+        buildingEntry["_dirty"] = True
 
 
 def updateBuildingUse(self, context):
@@ -240,25 +262,38 @@ def updateBuildingUse(self, context):
 
 
 def updateAssetCategory(self, context):
-    updateAttribute("category", self, context)
+    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
+    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
+    
+    category = self.assetCategory
+    if category != assetInfo["category"]:
+        path = assetInfo["path"]
+        name = assetInfo["name"]
+        assetInfo.clear()
+        assetInfo.update(path=path, name=name)
+        for a in defaults["texture"][category]:
+            value = defaults["texture"][category][a]
+            assetInfo[a] = value
+            setattr(context.scene.blosmAm, assetAttr2AmAttr[a], value)
+        _markDirty(buildingEntry)
 
 def updateFeatureWidthM(self, context):
-    updateAttribute("featureWidthM", self, context)
+    _updateAttribute("featureWidthM", self, context)
 
 def updateFeatureLpx(self, context):
-    updateAttribute("featureLpx", self, context)
+    _updateAttribute("featureLpx", self, context)
 
 def updateFeatureRpx(self, context):
-    updateAttribute("featureRpx", self, context)
+    _updateAttribute("featureRpx", self, context)
 
 def updateNumTilesU(self, context):
-    updateAttribute("numTilesU", self, context)
+    _updateAttribute("numTilesU", self, context)
 
 def updateNumTilesV(self, context):
-    updateAttribute("numTilesV", self, context)
+    _updateAttribute("numTilesV", self, context)
 
 def updateTextureWidthM(self, context):
-    updateAttribute("textureWidthM", self, context)
+    _updateAttribute("textureWidthM", self, context)
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):

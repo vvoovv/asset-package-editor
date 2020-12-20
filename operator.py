@@ -297,8 +297,8 @@ class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
 
 class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
     bl_idname = "blosm.am_add_building"
-    bl_label = "Add"
-    bl_description = "Add a building asset collection"
+    bl_label = "New"
+    bl_description = "Add a new building asset collection"
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
