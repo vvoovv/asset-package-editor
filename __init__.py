@@ -190,15 +190,20 @@ class AssetManager:
         
         #layout.prop(am, "buildingAsset")
         box = layout.box()
+        
+        assetInfo = getAssetInfo(context)
+        
         row = box.row()
-        row.template_icon_view(am, "buildingAsset", show_labels=True)
-        
-        if am.showAdvancedOptions:
-            column = row.column(align=True)
-            column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
-            column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
-        
-        box.prop(am, "showAdvancedOptions")
+        if assetInfo["name"]:
+            row.template_icon_view(am, "buildingAsset", show_labels=True)
+            if am.showAdvancedOptions:
+                column = row.column(align=True)
+                column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
+                column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
+            box.prop(am, "showAdvancedOptions")
+            rowPath = box.row()
+            rowPath.label(text = "Path: %s/%s" % (assetInfo["path"], assetInfo["name"]))
+            rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
         
         box.prop(am, "assetCategory")
         

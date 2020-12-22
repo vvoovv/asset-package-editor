@@ -352,6 +352,21 @@ class BLOSM_OT_AmDeleteBldgAsset(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
+    bl_idname = "blosm.am_set_asset_path"
+    bl_label = "Set path..."
+    bl_description = "Set path to the asset"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        print("The path is set")
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 _classes = (
     BLOSM_OT_AmLoadApList,
     BLOSM_OT_AmEditAp,
@@ -367,7 +382,8 @@ _classes = (
     BLOSM_OT_AmAddBuilding,
     BLOSM_OT_AmDeleteBuilding,
     BLOSM_OT_AmAddBldgAsset,
-    BLOSM_OT_AmDeleteBldgAsset
+    BLOSM_OT_AmDeleteBldgAsset,
+    BLOSM_OT_AmSetAssetPath
 )
 
 
