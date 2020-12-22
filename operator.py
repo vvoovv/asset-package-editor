@@ -4,7 +4,8 @@ from distutils.dir_util import copy_tree
 import bpy
 
 
-from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir, updateAttributes
+from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir,\
+    updateAttributes, defaults, getBuildings, getBuildingAssets
 
 
 def writeJson(jsonObj, jsonFilepath):
@@ -302,7 +303,19 @@ class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        print("Added")
+        am = context.scene.blosmAm
+        # Create a building asset collection using the current values of
+        # <am.buildingUse>
+        buildingEntry = dict(
+            use = am.buildingUse,
+            assets = [
+                defaults["texture"][am.assetCategory]
+            ],
+            _dirty = False
+        )
+        assetPackage[0]["buildings"].append(buildingEntry)
+        getBuildings(am, context)
+        am.building = str( len(assetPackage[0]["buildings"])-1 )
         return {'FINISHED'}
 
 

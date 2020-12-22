@@ -19,11 +19,15 @@ imagePreviews = [0]
 # a mapping between an asset attribute in a JSON file and the attribute of <BlosmAmProperties>
 assetAttr2AmAttr = {
     "category": "assetCategory",
+    "type": "type",
+    "name": "name",
+    "path": "path",
     "featureWidthM": "featureWidthM",
     "featureLpx": "featureLpx",
     "featureRpx": "featureRpx",
     "numTilesU": "numTilesU",
     "numTilesV": "numTilesV",
+    "material": "material",
     "textureWidthM": "textureWidthM"
 }
 
@@ -31,22 +35,40 @@ defaults = dict(
     texture = dict(
         part = dict(
             category = "part",
+            part = "level",
+            type = "texture",
             featureWidthM = 1.,
             featureLpx = 0,
             featureRpx = 100,
             numTilesU = 2,
-            numTilesV = 2
+            numTilesV = 2,
+            name = '',
+            path = ''
         ),
         cladding = dict(
             category = "cladding",
-            textureWidthM = 1.
+            type = "texture",
+            material = "concrete",
+            textureWidthM = 1.,
+            name = '',
+            path = '' 
         )
     ),
     mesh = dict()
 )
 
+
 def getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
+
+
+def getBuildingEntry(context):
+    return assetPackage[0]["buildings"][int(context.scene.blosmAm.building)]
+
+
+def getAssetInfo(context):
+    return getBuildingEntry(context)["assets"][int(context.scene.blosmAm.buildingAsset)]
+    
 
 def updateAttributes(am, assetInfo):
     category = assetInfo["category"]
@@ -59,6 +81,44 @@ def updateAttributes(am, assetInfo):
         am.numTilesV = assetInfo["numTilesV"]
     elif category == "cladding":
         am.textureWidthM = assetInfo["textureWidthM"]
+
+
+_enumBuildings = []
+def getBuildings(self, context):
+    _enumBuildings.clear()
+    _enumBuildings.extend(
+        (
+            str(bldgIndex),
+            
+            "%s%s" % (
+                "* " if bldg.get("_dirty") else '',
+                bldg["use"],
+            ),
+            
+            bldg["use"]
+        ) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
+    )
+    return _enumBuildings
+
+
+_enumBuildingAssets = []
+def getBuildingAssets(self, context):
+    _enumBuildingAssets.clear()
+    buildingEntry = getBuildingEntry(context)
+    
+    # add assets
+    loadImagePreviews(buildingEntry["assets"], context)
+    _enumBuildingAssets.extend(
+        (
+            str(assetIndex),
+            assetInfo["name"],
+            assetInfo["name"],
+            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else 0,
+            # index is required to show the icons
+            assetIndex
+        ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
+    )
+    return _enumBuildingAssets
 
 
 import os
@@ -173,46 +233,10 @@ def getAssetPackages(self, context):
     return _enumAssetPackages
 
 
-_enumBuildings = []
-def getBuildings(self, context):
-    _enumBuildings.clear()
-    _enumBuildings.extend(
-        (
-            str(bldgIndex),
-            
-            "%s%s" % (
-                "* " if bldg["_dirty"] else '',
-                bldg["use"],
-            ),
-            
-            bldg["use"]
-        ) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
-    )
-    return _enumBuildings
-
-
-_enumBuildingAssets = []
-def getBuildingAssets(self, context):
-    _enumBuildingAssets.clear()
-    buildingEntry = assetPackage[0]["buildings"][int(context.scene.blosmAm.building)]
-    
-    # add assets
-    loadImagePreviews(buildingEntry["assets"], context)
-    _enumBuildingAssets.extend(
-        (
-            str(assetIndex),
-            assetInfo["name"],
-            assetInfo["name"],
-            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id,
-            # index is required to show the icons
-            assetIndex
-        ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
-    )
-    return _enumBuildingAssets
-
-
 def loadImagePreviews(imageList, context):
     for imageEntry in imageList:
+        if not imageEntry["name"]:
+            return
         # generates a thumbnail preview for a file.
         name = os.path.join(imageEntry["path"], imageEntry["name"])
         filepath = os.path.join(getAssetsDir(context), imageEntry["path"][1:], imageEntry["name"])
@@ -225,26 +249,25 @@ def loadImagePreviews(imageList, context):
 #
 
 def updateBuilding(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
+    buildingEntry = getBuildingEntry(context)
     self.buildingUse = buildingEntry["use"]
     self.buildingAsset = "0"
     #updateBuildingAsset(self, context)
 
 
 def updateBuildingAsset(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
-    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
-    
-    updateAttributes(self, assetInfo)
+    updateAttributes(
+        self,
+        getAssetInfo(context)
+    )
 
 
 def _updateAttribute(attr, self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
-    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
+    assetInfo = getAssetInfo(context)
     
     if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
         assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
-        _markDirty(buildingEntry)
+        _markDirty( getBuildingEntry(context) )
 
 
 def _markDirty(buildingEntry):
@@ -253,7 +276,7 @@ def _markDirty(buildingEntry):
 
 
 def updateBuildingUse(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
+    buildingEntry = getBuildingEntry(context)
     
     if self.buildingUse != buildingEntry["use"]:
         buildingEntry["use"] = self.buildingUse
@@ -262,8 +285,7 @@ def updateBuildingUse(self, context):
 
 
 def updateAssetCategory(self, context):
-    buildingEntry = assetPackage[0]["buildings"][int(self.building)]
-    assetInfo = buildingEntry["assets"][int(self.buildingAsset)]
+    assetInfo = getAssetInfo(context)
     
     category = self.assetCategory
     if category != assetInfo["category"]:
@@ -275,7 +297,8 @@ def updateAssetCategory(self, context):
             value = defaults["texture"][category][a]
             assetInfo[a] = value
             setattr(context.scene.blosmAm, assetAttr2AmAttr[a], value)
-        _markDirty(buildingEntry)
+        _markDirty( getBuildingEntry(context) )
+
 
 def updateFeatureWidthM(self, context):
     _updateAttribute("featureWidthM", self, context)
