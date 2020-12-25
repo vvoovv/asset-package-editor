@@ -5,7 +5,8 @@ import bpy
 
 
 from . import assetPackages, assetPackage, assetPackagesLookup, getAssetsDir,\
-    updateAttributes, defaults, getBuildings, getBuildingAssets
+    updateAttributes, defaults, getBuildings, getBuildingAssets, getBuildingEntry, getAssetInfo,\
+    _markEdited, _new
 
 
 def writeJson(jsonObj, jsonFilepath):
@@ -63,9 +64,9 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
         ) as jsonFile:
             assetPackage[0] = json.load(jsonFile)
         
-        # mark all building asset collection as NOT dirty
+        # mark all building asset collection as NOT changed
         for buildingEntry in assetPackage[0]["buildings"]:
-            buildingEntry["_dirty"] = False
+            buildingEntry["_changed"] = 0
             if not "use" in buildingEntry:
                 buildingEntry["use"] = "any"
         
@@ -311,7 +312,7 @@ class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
             assets = [
                 defaults["texture"][am.assetCategory]
             ],
-            _dirty = False
+            _changed = _new
         )
         assetPackage[0]["buildings"].append(buildingEntry)
         getBuildings(am, context)
@@ -358,8 +359,37 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
     bl_description = "Set path to the asset"
     bl_options = {'INTERNAL'}
     
+    filename: bpy.props.StringProperty()
+    
+    directory: bpy.props.StringProperty(
+        subtype = 'FILE_PATH'
+    )
+    
     def execute(self, context):
-        print("The path is set")
+        assetsDir = os.path.normpath(getAssetsDir(context))
+        directory = os.path.normpath(self.directory)
+        
+        if directory.startswith(assetsDir):
+            lenAssetsDir = len(assetsDir)
+            if lenAssetsDir == len(directory):
+                self.report({'ERROR'}, "The asset must be located in the folder of an asset package")
+            else:
+                assetInfo = getAssetInfo(context)
+                path = "/".join( directory[lenAssetsDir:].split(os.sep) )
+                name = self.filename
+                if path != assetInfo["path"] or name != assetInfo["name"]:
+                    assetInfo.update(
+                        path = "/".join( directory[lenAssetsDir:].split(os.sep) ),
+                        name = self.filename
+                    )
+                    _markEdited(getBuildingEntry(context))
+                    
+        else:
+            self.report({'ERROR'},
+                "The asset has been copied to the sub-folder \"%s\" in your top directory for assets" %
+                os.path.join(context.scene.blosmAm.assetPackage, "assets")
+            )
+            
         return {'FINISHED'}
     
     def invoke(self, context, event):

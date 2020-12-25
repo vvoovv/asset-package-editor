@@ -58,6 +58,11 @@ defaults = dict(
 )
 
 
+# values for <_changed>:
+_edited = 1
+_new = 2
+
+
 def getAssetsDir(context):
     return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
 
@@ -68,6 +73,11 @@ def getBuildingEntry(context):
 
 def getAssetInfo(context):
     return getBuildingEntry(context)["assets"][int(context.scene.blosmAm.buildingAsset)]
+
+
+def _markEdited(buildingEntry):
+    if not buildingEntry["_changed"]:
+        buildingEntry["_changed"] = _edited
     
 
 def updateAttributes(am, assetInfo):
@@ -91,7 +101,7 @@ def getBuildings(self, context):
             str(bldgIndex),
             
             "%s%s" % (
-                "* " if bldg.get("_dirty") else '',
+                "[edit] " if bldg["_changed"]==_edited else ("[new] " if bldg["_changed"]==_new else ''),
                 bldg["use"],
             ),
             
@@ -193,17 +203,21 @@ class AssetManager:
         
         assetInfo = getAssetInfo(context)
         
-        row = box.row()
+        assetIconBox = box.box()
         if assetInfo["name"]:
+            row = assetIconBox.row()
             row.template_icon_view(am, "buildingAsset", show_labels=True)
             if am.showAdvancedOptions:
                 column = row.column(align=True)
                 column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
                 column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
-            box.prop(am, "showAdvancedOptions")
-            rowPath = box.row()
+            assetIconBox.prop(am, "showAdvancedOptions")
+            rowPath = assetIconBox.row()
             rowPath.label(text = "Path: %s/%s" % (assetInfo["path"], assetInfo["name"]))
-            rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
+        else:
+            rowPath = assetIconBox.row()
+            rowPath.label(text = "Select an asset:")
+        rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
         
         box.prop(am, "assetCategory")
         
@@ -272,12 +286,7 @@ def _updateAttribute(attr, self, context):
     
     if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
         assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
-        _markDirty( getBuildingEntry(context) )
-
-
-def _markDirty(buildingEntry):
-    if not buildingEntry["_dirty"]:
-        buildingEntry["_dirty"] = True
+        _markEdited( getBuildingEntry(context) )
 
 
 def updateBuildingUse(self, context):
@@ -285,8 +294,7 @@ def updateBuildingUse(self, context):
     
     if self.buildingUse != buildingEntry["use"]:
         buildingEntry["use"] = self.buildingUse
-        if not buildingEntry["_dirty"]:
-            buildingEntry["_dirty"] = True
+        _markEdited(buildingEntry)
 
 
 def updateAssetCategory(self, context):
@@ -302,7 +310,7 @@ def updateAssetCategory(self, context):
             value = defaults["texture"][category][a]
             assetInfo[a] = value
             setattr(context.scene.blosmAm, assetAttr2AmAttr[a], value)
-        _markDirty( getBuildingEntry(context) )
+        _markEdited( getBuildingEntry(context) )
 
 
 def updateFeatureWidthM(self, context):
