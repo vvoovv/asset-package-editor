@@ -27,7 +27,7 @@ assetAttr2AmAttr = {
     "featureRpx": "featureRpx",
     "numTilesU": "numTilesU",
     "numTilesV": "numTilesV",
-    "material": "material",
+    "material": "claddingMaterial",
     "textureWidthM": "textureWidthM"
 }
 
@@ -90,6 +90,7 @@ def updateAttributes(am, assetInfo):
         am.numTilesU = assetInfo["numTilesU"]
         am.numTilesV = assetInfo["numTilesV"]
     elif category == "cladding":
+        am.claddingMaterial = assetInfo["material"]
         am.textureWidthM = assetInfo["textureWidthM"]
 
 
@@ -228,7 +229,8 @@ class AssetManager:
             box.prop(am, "numTilesU")
             box.prop(am, "numTilesV")
         elif am.assetCategory == "cladding":
-            layout.prop(am, "textureWidthM")
+            box.prop(am, "claddingMaterial")
+            box.prop(am, "textureWidthM")
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -330,6 +332,9 @@ def updateNumTilesV(self, context):
 
 def updateTextureWidthM(self, context):
     _updateAttribute("textureWidthM", self, context)
+
+def updateCladdingMaterial(self, context):
+    _updateAttribute("material", self, context)
 
 
 class BlosmAmProperties(bpy.types.PropertyGroup):
@@ -456,6 +461,20 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         description = "The number of tiles in the texture in the vertical direction",
         min = 1,
         update = updateNumTilesV
+    )
+    
+    claddingMaterial: bpy.props.EnumProperty(
+        name = "Material",
+        items = (
+            ("brick", "brick", "brick"),
+            ("plaster", "plaster", "plaster"),
+            ("concrete", "concrete", "concrete"),
+            ("glass", "glass", "glass"),
+            ("gravel", "gravel", "gravel"),
+            ("roof_tiles", "roof tiles", "roof tiles")
+        ),
+        description = "Material for cladding",
+        update = updateCladdingMaterial
     )
     
     textureWidthM: bpy.props.FloatProperty(
