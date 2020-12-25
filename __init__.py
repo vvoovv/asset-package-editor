@@ -804,13 +804,29 @@ class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
 
 class BLOSM_OT_AmDeleteBuilding(bpy.types.Operator):
     bl_idname = "blosm.am_delete_building"
-    bl_label = "Delete"
+    bl_label = "Delete the building asset collection"
     bl_description = "Delete the building asset collection"
     bl_options = {'INTERNAL'}
+    
+    showConfirmatioDialog = bpy.props.BoolProperty(
+        name = "Show this dialog",
+        description = "Show this dialog to confirm the deletion of a building asset collection",
+        default = True
+    )
     
     def execute(self, context):
         print("Deleted")
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        if self.showConfirmatioDialog:
+            return context.window_manager.invoke_props_dialog(self)
+        else:
+            return self.execute(context)
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "showConfirmatioDialog")
 
 
 class BLOSM_OT_AmAddBldgAsset(bpy.types.Operator):
