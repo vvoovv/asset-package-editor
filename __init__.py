@@ -78,6 +78,7 @@ def getAssetInfo(context):
 def _markEdited(buildingEntry):
     if not buildingEntry["_changed"]:
         buildingEntry["_changed"] = _edited
+    assetPackage[0]["_changed"] = 1
     
 
 def updateAttributes(am, assetInfo):
@@ -187,7 +188,13 @@ class AssetManager:
         am = context.scene.blosmAm
         
         row = layout.row()
-        row.label(text=assetPackagesLookup[am.assetPackage][1])
+        row.label(
+            text = "Asset package: %s%s" %
+            (
+                assetPackagesLookup[am.assetPackage][1],
+                " [edited]" if assetPackage[0]["_changed"] else ''
+            )
+        )
         row.operator("blosm.am_save_ap")
         row.operator("blosm.am_cancel")
         
@@ -469,6 +476,7 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
             ("brick", "brick", "brick"),
             ("plaster", "plaster", "plaster"),
             ("concrete", "concrete", "concrete"),
+            ("metal", "metal", "metal"),
             ("glass", "glass", "glass"),
             ("gravel", "gravel", "gravel"),
             ("roof_tiles", "roof tiles", "roof tiles")
@@ -545,6 +553,8 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
             'r'
         ) as jsonFile:
             assetPackage[0] = json.load(jsonFile)
+        
+        assetPackage[0]["_changed"] = 0
         
         # mark all building asset collection as NOT changed
         for buildingEntry in assetPackage[0]["buildings"]:
@@ -808,14 +818,16 @@ class BLOSM_OT_AmDeleteBuilding(bpy.types.Operator):
     bl_description = "Delete the building asset collection"
     bl_options = {'INTERNAL'}
     
-    showConfirmatioDialog = bpy.props.BoolProperty(
+    showConfirmatioDialog: bpy.props.BoolProperty(
         name = "Show this dialog",
         description = "Show this dialog to confirm the deletion of a building asset collection",
         default = True
     )
     
     def execute(self, context):
-        print("Deleted")
+        del assetPackage[0]["buildings"][int(context.scene.blosmAm.building)]
+        updateBuilding(context.scene.blosmAm, context)
+        assetPackage[0]["_changed"] = 1
         return {'FINISHED'}
     
     def invoke(self, context, event):
