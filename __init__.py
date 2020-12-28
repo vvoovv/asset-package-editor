@@ -22,6 +22,7 @@ assetAttr2AmAttr = {
     "type": "type",
     "name": "name",
     "path": "path",
+    "part": "part",
     "featureWidthM": "featureWidthM",
     "featureLpx": "featureLpx",
     "featureRpx": "featureRpx",
@@ -41,17 +42,13 @@ defaults = dict(
             featureLpx = 0,
             featureRpx = 100,
             numTilesU = 2,
-            numTilesV = 2,
-            name = '',
-            path = ''
+            numTilesV = 2
         ),
         cladding = dict(
             category = "cladding",
             type = "texture",
             material = "concrete",
-            textureWidthM = 1.,
-            name = '',
-            path = '' 
+            textureWidthM = 1.
         )
     ),
     mesh = dict()
@@ -61,6 +58,11 @@ defaults = dict(
 # values for <_changed>:
 _edited = 1
 _new = 2
+
+
+# There are no edits if we simply change the selected building assets collection.
+# See <updateBuilding(..)>
+_ignoreEdits = False
 
 
 def getAssetsDir(context):
@@ -75,10 +77,17 @@ def getAssetInfo(context):
     return getBuildingEntry(context)["assets"][int(context.scene.blosmAm.buildingAsset)]
 
 
-def _markEdited(buildingEntry):
+def _markBuildingEdited(buildingEntry):
+    if _ignoreEdits:
+        return
     if not buildingEntry["_changed"]:
         buildingEntry["_changed"] = _edited
-    assetPackage[0]["_changed"] = 1
+    _markAssetPackageChanged()
+
+
+def _markAssetPackageChanged():
+    if not assetPackage[0]["_changed"]:
+        assetPackage[0]["_changed"] = 1
     
 
 def updateAttributes(am, assetInfo):
@@ -99,7 +108,12 @@ _enumBuildings = []
 def getBuildings(self, context):
     _enumBuildings.clear()
     _enumBuildings.extend(
-        (
+        _getBuildingTuple(bldgIndex, bldg) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
+    )
+    return _enumBuildings
+
+def _getBuildingTuple(bldgIndex, bldg):
+        return (
             str(bldgIndex),
             
             "%s%s" % (
@@ -108,9 +122,7 @@ def getBuildings(self, context):
             ),
             
             bldg["use"]
-        ) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
-    )
-    return _enumBuildings
+        )
 
 
 _enumBuildingAssets = []
@@ -277,9 +289,14 @@ def loadImagePreviews(imageList, context):
 #
 
 def updateBuilding(self, context):
+    global _ignoreEdits
+    _ignoreEdits = True
+    
     buildingEntry = getBuildingEntry(context)
     self.buildingUse = buildingEntry["use"]
     self.buildingAsset = "0"
+    
+    _ignoreEdits = False
     #updateBuildingAsset(self, context)
 
 
@@ -295,7 +312,7 @@ def _updateAttribute(attr, self, context):
     
     if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
         assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
-        _markEdited( getBuildingEntry(context) )
+        _markBuildingEdited( getBuildingEntry(context) )
 
 
 def updateBuildingUse(self, context):
@@ -303,7 +320,7 @@ def updateBuildingUse(self, context):
     
     if self.buildingUse != buildingEntry["use"]:
         buildingEntry["use"] = self.buildingUse
-        _markEdited(buildingEntry)
+        _markBuildingEdited(buildingEntry)
 
 
 def updateAssetCategory(self, context):
@@ -319,7 +336,7 @@ def updateAssetCategory(self, context):
             value = defaults["texture"][category][a]
             assetInfo[a] = value
             setattr(context.scene.blosmAm, assetAttr2AmAttr[a], value)
-        _markEdited( getBuildingEntry(context) )
+        _markBuildingEdited( getBuildingEntry(context) )
 
 
 def updateFeatureWidthM(self, context):
@@ -797,18 +814,21 @@ class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
     
     def execute(self, context):
         am = context.scene.blosmAm
+        bldgIndex = len(assetPackage[0]["buildings"])
         # Create a building asset collection using the current values of
         # <am.buildingUse>
+        assetInfo = defaults["texture"][am.assetCategory].copy()
+        assetInfo.update(name = '', path = '')
         buildingEntry = dict(
             use = am.buildingUse,
-            assets = [
-                defaults["texture"][am.assetCategory]
-            ],
+            assets = [ assetInfo ],
             _changed = _new
         )
         assetPackage[0]["buildings"].append(buildingEntry)
-        getBuildings(am, context)
-        am.building = str( len(assetPackage[0]["buildings"])-1 )
+        _enumBuildings.append( _getBuildingTuple(bldgIndex, buildingEntry) )
+        am.building = str(bldgIndex)
+        
+        _markAssetPackageChanged()
         return {'FINISHED'}
 
 
@@ -825,9 +845,13 @@ class BLOSM_OT_AmDeleteBuilding(bpy.types.Operator):
     )
     
     def execute(self, context):
-        del assetPackage[0]["buildings"][int(context.scene.blosmAm.building)]
-        updateBuilding(context.scene.blosmAm, context)
-        assetPackage[0]["_changed"] = 1
+        buildingIndex = int(context.scene.blosmAm.building)
+        del assetPackage[0]["buildings"][buildingIndex]
+        context.scene.blosmAm.building = str(buildingIndex-1)\
+            if len(assetPackage[0]["buildings"]) == buildingIndex else\
+            context.scene.blosmAm.building
+        #updateBuilding(context.scene.blosmAm, context)
+        _markAssetPackageChanged()
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -892,7 +916,7 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
                         path = "/".join( directory[lenAssetsDir:].split(os.sep) ),
                         name = self.filename
                     )
-                    _markEdited(getBuildingEntry(context))
+                    _markBuildingEdited(getBuildingEntry(context))
                     
         else:
             self.report({'ERROR'},
