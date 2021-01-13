@@ -177,7 +177,7 @@ class AssetManager:
         row.prop(am, "assetPackage")
         row.operator("blosm.am_edit_ap", text="Edit package")
         row.operator("blosm.am_copy_ap", text="Copy")
-        row.operator("blosm.am_update_asset_package", text="Update")
+        #row.operator("blosm.am_update_asset_package", text="Update") # TODO
         row.operator("blosm.am_edit_ap_name", text="Edit name")
         row.operator("blosm.am_delete_ap", text="Delete")
         
@@ -561,6 +561,10 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
     bl_idname = "blosm.am_edit_ap"
     bl_label = "Edit asset package"
     bl_options = {'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        return assetPackagesLookup[context.scene.blosmAm.assetPackage][0] != "default"
     
     def execute(self, context):
         am = context.scene.blosmAm
@@ -597,6 +601,10 @@ class BLOSM_OT_AmEditApName(bpy.types.Operator):
     bl_label = "Edit asset package name"
     bl_options = {'INTERNAL'}
     
+    @classmethod
+    def poll(cls, context):
+        return assetPackagesLookup[context.scene.blosmAm.assetPackage][0] != "default"
+    
     def execute(self, context):
         assetPackage = context.scene.blosmAm.assetPackage
         
@@ -629,7 +637,7 @@ class BLOSM_OT_AmCopyAp(bpy.types.Operator):
             else:
                 break
         apInfo = assetPackagesLookup[apDirName]
-        assetPackages.append((apDirNameTarget, "%s (copy)" % apInfo[1], "%s (copy)" % apInfo[2]))
+        assetPackages.append([apDirNameTarget, "%s (copy)" % apInfo[1], "%s (copy)" % apInfo[2]])
         assetPackagesLookup[apDirNameTarget] = assetPackages[-1]
         writeJson( dict(assetPackages = assetPackages), getApListFilepath(context) )
         context.scene.blosmAm.assetPackage = apDirNameTarget
@@ -769,6 +777,10 @@ class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
     bl_description = "Delete asset package"
     bl_options = {'INTERNAL'}
 
+    @classmethod
+    def poll(cls, context):
+        return assetPackagesLookup[context.scene.blosmAm.assetPackage][0] != "default"
+
     def execute(self, context):
         print("Deleted")
         return {'FINISHED'}
@@ -781,8 +793,24 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        print("Save")
+        if assetPackage[0]["_changed"]:
+            self.cleanupAp()
+            path = os.path.join(getAssetsDir(context), context.scene.blosmAm.assetPackage, "asset_info", "asset_info.json")
+            writeJson(
+                assetPackage[0],
+                path
+            )
+            self.report({'INFO'}, "The asset package has been successfully saved to %s" % path)
+        else:
+            self.report({'WARNING'}, "Nothing to save")
         return {'FINISHED'}
+    
+    def cleanupAp(self):
+        ap = assetPackage[0]
+        if "buildings" in ap:
+            for buildingEntry in ap["buildings"]:
+                del buildingEntry["_changed"]
+        del assetPackage[0]["_changed"]
 
 
 class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
