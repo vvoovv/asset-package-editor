@@ -672,27 +672,22 @@ class BLOSM_OT_AmCopyAp(bpy.types.Operator):
                 aiFilepathTarget = os.path.join(targetDir, "asset_info", fileName)
                 # open the source asset info file
                 with open(aiFilepathSource, 'r') as aiFile:
-                    assetInfo = deepcopy(json.load(aiFile))
-                self.processAssetInfo(assetInfo, apDirName)
+                    assetInfos = json.load(aiFile)
+                self.processAssetInfos(assetInfos, apDirName)
                 # write the target asset info file
-                writeJson(assetInfo, aiFilepathTarget)
+                writeJson(assetInfos, aiFilepathTarget)
     
-    def processAssetInfo(self, assetInfo, apDirName):
+    def processAssetInfos(self, assetInfos, apDirName):
         """
         The method checks every building entry in <assetInfo> and
         then every 'part' in the building entry.
         If the field 'path' doesn't start with /, the prefix apDirName/ is added to the field 'path'
         """
-        for bldgEntry in assetInfo["buildings"]:
-            self.processAssetInfoList("parts", bldgEntry, apDirName)
-            self.processAssetInfoList("cladding", bldgEntry, apDirName)
-        
-    def processAssetInfoList(self, listName, bldgEntry, apDirName):
-        if listName in bldgEntry:
-            for listEntry in bldgEntry[listName]:
-                path = listEntry["path"]
+        for bldgEntry in assetInfos["buildings"]:
+            for assetInfo in bldgEntry["assets"]:
+                path = assetInfo["path"]
                 if path[0] != '/':
-                    listEntry["path"] = "/%s/%s" % (apDirName, path)
+                    assetInfo["path"] = "/%s/%s" % (apDirName, path)
 
 
 class BLOSM_OT_AmInstallAssetPackage(bpy.types.Operator):
@@ -793,24 +788,30 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        if assetPackage[0]["_changed"]:
-            self.cleanupAp()
-            path = os.path.join(getAssetsDir(context), context.scene.blosmAm.assetPackage, "asset_info", "asset_info.json")
-            writeJson(
-                assetPackage[0],
-                path
-            )
-            self.report({'INFO'}, "The asset package has been successfully saved to %s" % path)
-        else:
-            self.report({'WARNING'}, "Nothing to save")
+        ap = deepcopy(assetPackage[0])
+        self.cleanup(ap, True)
+        path = os.path.join(getAssetsDir(context), context.scene.blosmAm.assetPackage, "asset_info", "asset_info.json")
+        writeJson(
+            ap,
+            path
+        )
+        self.report({'INFO'}, "The asset package has been successfully saved to %s" % path)
+        self.cleanup(assetPackage[0], False)
         return {'FINISHED'}
     
-    def cleanupAp(self):
-        ap = assetPackage[0]
+    def cleanup(self, ap, deleteChanged):
         if "buildings" in ap:
             for buildingEntry in ap["buildings"]:
-                del buildingEntry["_changed"]
-        del assetPackage[0]["_changed"]
+                if deleteChanged:
+                    del buildingEntry["_changed"]
+                else:
+                    # just reset it
+                    buildingEntry["_changed"] = 0
+        if deleteChanged:
+            del ap["_changed"]
+        else:
+            # just reset it
+            ap["_changed"] = 0
 
 
 class BLOSM_OT_AmSelectBuilding(bpy.types.Operator):
