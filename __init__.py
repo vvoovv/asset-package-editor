@@ -148,6 +148,7 @@ def getBuildingAssets(self, context):
 import os, json
 from copy import deepcopy
 from distutils.dir_util import copy_tree
+from shutil import copyfile
 import bpy
 import bpy.utils.previews
 
@@ -932,6 +933,8 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
         assetsDir = os.path.normpath(getAssetsDir(context))
         directory = os.path.normpath(self.directory)
         
+        name = self.filename
+        
         if directory.startswith(assetsDir):
             lenAssetsDir = len(assetsDir)
             if lenAssetsDir == len(directory):
@@ -939,7 +942,6 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
             else:
                 assetInfo = getAssetInfo(context)
                 path = "/".join( directory[lenAssetsDir:].split(os.sep) )
-                name = self.filename
                 if path != assetInfo["path"] or name != assetInfo["name"]:
                     assetInfo.update(
                         path = "/".join( directory[lenAssetsDir:].split(os.sep) ),
@@ -948,10 +950,23 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
                     _markBuildingEdited(getBuildingEntry(context))
                     
         else:
-            self.report({'ERROR'},
-                "The asset has been copied to the sub-folder \"%s\" in your top directory for assets" %
-                os.path.join(context.scene.blosmAm.assetPackage, "assets")
+            path = os.path.join(
+                getAssetsDir(context),
+                context.scene.blosmAm.assetPackage,
+                "assets"
             )
+            # The asset will be moved to the directory <path>
+            if not os.path.isfile( os.path.join(path, name) ):
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                copyfile(
+                    os.path.join(directory, name),
+                    os.path.join(path, name)
+                )
+                self.report({'INFO'},
+                    "The asset has been copied to the sub-folder \"%s\" in your top directory for assets" %
+                    os.path.join(context.scene.blosmAm.assetPackage, "assets")
+                )
             
         return {'FINISHED'}
     
