@@ -137,7 +137,7 @@ def getBuildingAssets(self, context):
             str(assetIndex),
             assetInfo["name"],
             assetInfo["name"],
-            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else 0,
+            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else "BLANK1",
             # index is required to show the icons
             assetIndex
         ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
@@ -182,7 +182,7 @@ class AssetManager:
         row.operator("blosm.am_edit_ap_name", text="Edit name")
         row.operator("blosm.am_remove_ap", text="Remove")
         
-        layout.operator("blosm.am_select_building")
+        #layout.operator("blosm.am_select_building")
     
     def drawApNameEditor(self, context):
         layout = self.layout
@@ -225,19 +225,19 @@ class AssetManager:
         assetInfo = getAssetInfo(context)
         
         assetIconBox = box.box()
-        if assetInfo["name"]:
-            row = assetIconBox.row()
-            row.template_icon_view(am, "buildingAsset", show_labels=True)
-            if am.showAdvancedOptions:
-                column = row.column(align=True)
-                column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
-                column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
-            assetIconBox.prop(am, "showAdvancedOptions")
-            rowPath = assetIconBox.row()
-            rowPath.label(text = "Path: %s/%s" % (assetInfo["path"], assetInfo["name"]))
-        else:
-            rowPath = assetIconBox.row()
-            rowPath.label(text = "Select an asset:")
+        assetIconBox.prop(am, "showAdvancedOptions")
+        row = assetIconBox.row()
+        row.template_icon_view(am, "buildingAsset", show_labels=True)
+        if am.showAdvancedOptions:
+            column = row.column(align=True)
+            column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
+            column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
+        rowPath = assetIconBox.row()
+        rowPath.label(text =\
+            rowPath.label(text = "Path: %s/%s" % (assetInfo["path"], assetInfo["name"]))\
+                if assetInfo["name"] else\
+                rowPath.label(text = "Select an asset:")
+        )
         rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
         
         box.prop(am, "assetCategory")
@@ -821,7 +821,7 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
             for assetInfo in buildingEntry["assets"]:
                 if not (assetInfo["path"] and assetInfo["name"]):
                     self.report({'ERROR'},
-                        "Unable to save: there is an asset without a valid path"
+                        "Unable to save: there is at least one asset without a valid path"
                     )
                     return False
         return True
@@ -928,7 +928,18 @@ class BLOSM_OT_AmAddBldgAsset(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        print("Added")
+        am = context.scene.blosmAm
+        buildingEntry = getBuildingEntry(context)
+        
+        assetIndex = len(buildingEntry["assets"])
+        assetInfo = defaults["texture"][am.assetCategory].copy()
+        assetInfo.update(name = '', path = '')
+        buildingEntry["assets"].append(assetInfo)
+        
+        _enumBuildingAssets.append( (str(assetIndex), '', '', "BLANK1", assetIndex) )
+        am.buildingAsset = str(assetIndex)
+        
+        _markBuildingEdited(buildingEntry)
         return {'FINISHED'}
 
 
@@ -938,8 +949,19 @@ class BLOSM_OT_AmDeleteBldgAsset(bpy.types.Operator):
     bl_description = "Delete the building asset"
     bl_options = {'INTERNAL'}
     
+    @classmethod
+    def poll(cls, context):
+        return len(getBuildingEntry(context)["assets"]) > 1
+    
     def execute(self, context):
-        print("Deleted")
+        buildingEntry = getBuildingEntry(context)
+        assetIndex = int(context.scene.blosmAm.buildingAsset)
+        
+        del buildingEntry["assets"][assetIndex]
+        
+        context.scene.blosmAm.building = "0"
+            
+        _markBuildingEdited(buildingEntry)
         return {'FINISHED'}
 
 
