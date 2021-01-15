@@ -180,7 +180,7 @@ class AssetManager:
         row.operator("blosm.am_copy_ap", text="Copy")
         #row.operator("blosm.am_update_asset_package", text="Update") # TODO
         row.operator("blosm.am_edit_ap_name", text="Edit name")
-        row.operator("blosm.am_delete_ap", text="Delete")
+        row.operator("blosm.am_remove_ap", text="Remove")
         
         layout.operator("blosm.am_select_building")
     
@@ -767,10 +767,10 @@ class BLOSM_OT_AmApplyApName(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
-    bl_idname = "blosm.am_delete_ap"
-    bl_label = "Delete asset package"
-    bl_description = "Delete asset package"
+class BLOSM_OT_AmRemoveAp(bpy.types.Operator):
+    bl_idname = "blosm.am_remove_ap"
+    bl_label = "Remove the asset package"
+    bl_description = "Remove the asset package from the list. Its folder will remain intact"
     bl_options = {'INTERNAL'}
 
     @classmethod
@@ -778,8 +778,21 @@ class BLOSM_OT_AmDeleteAp(bpy.types.Operator):
         return assetPackagesLookup[context.scene.blosmAm.assetPackage][0] != "default"
 
     def execute(self, context):
-        print("Deleted")
+        # the directory name of an asset package serves as its id
+        apDirName = context.scene.blosmAm.assetPackage
+        apInfo = assetPackagesLookup[apDirName]
+        del assetPackagesLookup[apDirName]
+        assetPackages.remove(apInfo)
+        # the asset package <default> is write protected
+        context.scene.blosmAm.assetPackage = "default"
+        self.report({'INFO'},
+            "The asset package \"%s\" has been deleted from the list. Its directory remained intact" % apInfo[1]
+        )
+        writeJson( dict(assetPackages = assetPackages), getApListFilepath(context) )
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
 
 
 class BLOSM_OT_AmSaveAp(bpy.types.Operator):
@@ -789,6 +802,8 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
+        if not self.validate():
+            return {'FINISHED'}
         ap = deepcopy(assetPackage[0])
         self.cleanup(ap, True)
         path = os.path.join(getAssetsDir(context), context.scene.blosmAm.assetPackage, "asset_info", "asset_info.json")
@@ -799,6 +814,17 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
         self.report({'INFO'}, "The asset package has been successfully saved to %s" % path)
         self.cleanup(assetPackage[0], False)
         return {'FINISHED'}
+    
+    def validate(self):
+        ap = assetPackage[0]
+        for buildingEntry in ap["buildings"]:
+            for assetInfo in buildingEntry["assets"]:
+                if not (assetInfo["path"] and assetInfo["name"]):
+                    self.report({'ERROR'},
+                        "Unable to save: there is an asset without a valid path"
+                    )
+                    return False
+        return True
     
     def cleanup(self, ap, deleteChanged):
         if "buildings" in ap:
@@ -940,15 +966,11 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
             if lenAssetsDir == len(directory):
                 self.report({'ERROR'}, "The asset must be located in the folder of an asset package")
             else:
-                assetInfo = getAssetInfo(context)
-                path = "/".join( directory[lenAssetsDir:].split(os.sep) )
-                if path != assetInfo["path"] or name != assetInfo["name"]:
-                    assetInfo.update(
-                        path = "/".join( directory[lenAssetsDir:].split(os.sep) ),
-                        name = self.filename
-                    )
-                    _markBuildingEdited(getBuildingEntry(context))
-                    
+                self.setAssetPath(
+                    context,
+                    "/".join( directory[lenAssetsDir:].split(os.sep) ),
+                    name
+                )    
         else:
             path = os.path.join(
                 getAssetsDir(context),
@@ -956,7 +978,12 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
                 "assets"
             )
             # The asset will be moved to the directory <path>
-            if not os.path.isfile( os.path.join(path, name) ):
+            if os.path.isfile( os.path.join(path, name) ):
+                self.report({'INFO'},
+                    ("The existing asset %s in the sub-bolder \"%s\" in your directory for assets " +\
+                    "will be used instead of the selected asset.") % (name, path)
+                )
+            else:
                 if not os.path.isdir(path):
                     os.makedirs(path)
                 copyfile(
@@ -964,15 +991,29 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
                     os.path.join(path, name)
                 )
                 self.report({'INFO'},
-                    "The asset has been copied to the sub-folder \"%s\" in your top directory for assets" %
+                    "The asset has been copied to the sub-folder \"%s\" in your directory for assets" %
                     os.path.join(context.scene.blosmAm.assetPackage, "assets")
                 )
+            self.setAssetPath(
+                context,
+                "/%s" % '/'.join( (context.scene.blosmAm.assetPackage, "assets") ),
+                name
+            )
             
         return {'FINISHED'}
     
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+    
+    def setAssetPath(self, context, path, name):
+        assetInfo = getAssetInfo(context)
+        if path != assetInfo["path"] or name != assetInfo["name"]:
+            assetInfo.update(
+                path = path,
+                name = name
+            )
+            _markBuildingEdited(getBuildingEntry(context))
 
 
 ###################################################
@@ -991,7 +1032,7 @@ _classes = (
     BLOSM_OT_AmUpdateAssetPackage,
     BLOSM_OT_AmCancel,
     BLOSM_OT_AmApplyApName,
-    BLOSM_OT_AmDeleteAp,
+    BLOSM_OT_AmRemoveAp,
     BLOSM_OT_AmSaveAp,
     BLOSM_OT_AmSelectBuilding,
     BLOSM_OT_AmAddBuilding,
