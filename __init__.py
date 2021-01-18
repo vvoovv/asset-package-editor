@@ -29,7 +29,8 @@ assetAttr2AmAttr = {
     "numTilesU": "numTilesU",
     "numTilesV": "numTilesV",
     "material": "claddingMaterial",
-    "textureWidthM": "textureWidthM"
+    "textureWidthM": "textureWidthM",
+    "part": "buildingPart"
 }
 
 defaults = dict(
@@ -94,6 +95,7 @@ def updateAttributes(am, assetInfo):
     category = assetInfo["category"]
     am.assetCategory = category
     if category == "part":
+        am.buildingPart = assetInfo["part"]
         am.featureWidthM = assetInfo["featureWidthM"]
         am.featureLpx = assetInfo["featureLpx"]
         am.featureRpx = assetInfo["featureRpx"]
@@ -243,6 +245,7 @@ class AssetManager:
         box.prop(am, "assetCategory")
         
         if am.assetCategory == "part":
+            box.prop(am, "buildingPart")
             box.prop(am, "featureWidthM")
             box.prop(am, "featureLpx")
             box.prop(am, "featureRpx")
@@ -339,6 +342,9 @@ def updateAssetCategory(self, context):
             setattr(context.scene.blosmAm, assetAttr2AmAttr[a], value)
         _markBuildingEdited( getBuildingEntry(context) )
 
+
+def updateBuildingPart(self, context):
+    _updateAttribute("part", self, context)
 
 def updateFeatureWidthM(self, context):
     _updateAttribute("featureWidthM", self, context)
@@ -510,6 +516,16 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         default = 1.,
         description = "The texture width in meters",
         update = updateTextureWidthM
+    )
+    
+    buildingPart: bpy.props.EnumProperty(
+        name = "Building part",
+        items = (
+            ("level", "level", "level"),
+            ("curtain_wall", "curtain wall", "curtain wall")
+        ),
+        description = "Building part",
+        update = updateBuildingPart
     )
 
 
