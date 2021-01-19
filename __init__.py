@@ -11,6 +11,14 @@ bl_info = {
 }
 
 
+import os, json
+from copy import deepcopy
+from distutils.dir_util import copy_tree
+from shutil import copyfile
+import bpy
+import bpy.utils.previews
+
+
 assetPackages = []
 # the content of the current asset package
 assetPackage = [0]
@@ -67,7 +75,12 @@ _ignoreEdits = False
 
 
 def getAssetsDir(context):
-    return "D:\\projects\\prokitektura\\tmp\\premium\\assets"
+    with open(
+        os.path.join( os.path.dirname(os.path.realpath(__file__)), "assets.txt" ),
+        'r'
+    ) as _file:
+        assetsDir = _file.readline().strip()
+    return assetsDir
 
 
 def getBuildingEntry(context):
@@ -145,14 +158,6 @@ def getBuildingAssets(self, context):
         ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
     )
     return _enumBuildingAssets
-
-
-import os, json
-from copy import deepcopy
-from distutils.dir_util import copy_tree
-from shutil import copyfile
-import bpy
-import bpy.utils.previews
 
 
 class AssetManager:
