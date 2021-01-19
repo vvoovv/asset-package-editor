@@ -226,26 +226,21 @@ class AssetManager:
         
         layout.prop(am, "buildingUse")
         
+        assetInfo = getAssetInfo(context)
+        
         #layout.prop(am, "buildingAsset")
         box = layout.box()
         
-        assetInfo = getAssetInfo(context)
+        box.prop(am, "showAdvancedOptions")
         
         assetIconBox = box.box()
-        assetIconBox.prop(am, "showAdvancedOptions")
         row = assetIconBox.row()
         row.template_icon_view(am, "buildingAsset", show_labels=True)
         if am.showAdvancedOptions:
             column = row.column(align=True)
             column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
             column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
-        rowPath = assetIconBox.row()
-        rowPath.label(text =\
-            rowPath.label(text = "Path: %s/%s" % (assetInfo["path"], assetInfo["name"]))\
-                if assetInfo["name"] else\
-                rowPath.label(text = "Select an asset:")
-        )
-        rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
+        self.drawPath(assetIconBox.row(), assetInfo, "path", "name")
         
         box.prop(am, "assetCategory")
         
@@ -259,6 +254,14 @@ class AssetManager:
         elif am.assetCategory == "cladding":
             box.prop(am, "claddingMaterial")
             box.prop(am, "textureWidthM")
+    
+    def drawPath(self, rowPath, assetInfo, pathAttr, nameAttr):
+        rowPath.label(text =\
+            rowPath.label(text = "Path: %s/%s" % (assetInfo[pathAttr], assetInfo[nameAttr]))\
+                if assetInfo["name"] else\
+                rowPath.label(text = "Select an asset:")
+        )
+        rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
