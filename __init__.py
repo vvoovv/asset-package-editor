@@ -147,7 +147,7 @@ def _getBuildingTuple(bldgIndex, bldg, context):
             " %s" % assetInfo["name"] if assetInfo["name"] else ''
         ),
         
-        "%s%s" % (bldg["use"], assetInfo["name"] if assetInfo["name"] else ''),
+        "%s%s" % (bldg["use"], " %s" % assetInfo["name"] if assetInfo["name"] else ''),
         
         imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else "BLANK1",
         
