@@ -98,6 +98,8 @@ def _markBuildingEdited(buildingEntry):
     if not buildingEntry["_changed"]:
         buildingEntry["_changed"] = _edited
     _markAssetPackageChanged()
+    global _updateEnumBuildings
+    _updateEnumBuildings = True
 
 
 def _markAssetPackageChanged():
@@ -121,24 +123,37 @@ def updateAttributes(am, assetInfo):
 
 
 _enumBuildings = []
+_updateEnumBuildings = True
 def getBuildings(self, context):
-    _enumBuildings.clear()
-    _enumBuildings.extend(
-        _getBuildingTuple(bldgIndex, bldg) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
-    )
+    global _updateEnumBuildings
+    if _updateEnumBuildings:
+        _enumBuildings.clear()
+        _enumBuildings.extend(
+            _getBuildingTuple(bldgIndex, bldg, context) for bldgIndex,bldg in enumerate(assetPackage[0]["buildings"])
+        )
+        _updateEnumBuildings = False
     return _enumBuildings
 
-def _getBuildingTuple(bldgIndex, bldg):
-        return (
-            str(bldgIndex),
-            
-            "%s%s" % (
-                "[edit] " if bldg["_changed"]==_edited else ("[new] " if bldg["_changed"]==_new else ''),
-                bldg["use"],
-            ),
-            
-            bldg["use"]
-        )
+def _getBuildingTuple(bldgIndex, bldg, context):
+    loadImagePreviews(bldg["assets"], context)
+    # pick up the first asset
+    assetInfo = bldg["assets"][0]
+    return (
+        str(bldgIndex),
+        
+        "%s%s%s" % (
+            "[edit] " if bldg["_changed"]==_edited else ("[new] " if bldg["_changed"]==_new else ''),
+            bldg["use"],
+            " %s" % assetInfo["name"] if assetInfo["name"] else ''
+        ),
+        
+        "%s%s" % (bldg["use"], assetInfo["name"] if assetInfo["name"] else ''),
+        
+        imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else "BLANK1",
+        
+        # index is required to show the icons
+        bldgIndex
+    )
 
 
 _enumBuildingAssets = []
@@ -181,7 +196,7 @@ class AssetManager:
         layout = self.layout
         am = context.scene.blosmAm
         
-        layout.operator("blosm.am_install_asset_package")
+        #layout.operator("blosm.am_install_asset_package")
         row = layout.row()
         row.prop(am, "assetPackage")
         row.operator("blosm.am_edit_ap", text="Edit package")
@@ -620,10 +635,12 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
             if not "use" in buildingEntry:
                 buildingEntry["use"] = "any"
         
-        # set the active building asset collection to element with the index 0
-        am.building = "0"
         # pick up the building asset collection with the index 0
         buildingEntry = assetPackage[0]["buildings"][0]
+        # the line <getBuildings(am, context)> is required otherwise there is an error
+        getBuildings(am, context)
+        # set the active building asset collection to element with the index 0
+        am.building = "0"
         # pick up the asset info with the index 0
         assetInfo = buildingEntry["assets"][0]
         am.buildingUse = buildingEntry["use"]
@@ -917,7 +934,7 @@ class BLOSM_OT_AmAddBuilding(bpy.types.Operator):
             _changed = _new
         )
         assetPackage[0]["buildings"].append(buildingEntry)
-        _enumBuildings.append( _getBuildingTuple(bldgIndex, buildingEntry) )
+        _enumBuildings.append( _getBuildingTuple(bldgIndex, buildingEntry, context) )
         am.building = str(bldgIndex)
         
         _markAssetPackageChanged()
@@ -944,6 +961,8 @@ class BLOSM_OT_AmDeleteBuilding(bpy.types.Operator):
             context.scene.blosmAm.building
         #updateBuilding(context.scene.blosmAm, context)
         _markAssetPackageChanged()
+        global _updateEnumBuildings
+        _updateEnumBuildings = True
         return {'FINISHED'}
     
     def invoke(self, context, event):
