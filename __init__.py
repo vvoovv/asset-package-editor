@@ -1,3 +1,4 @@
+from importlib.resources import path
 bl_info = {
     "name": "New Object",
     "author": "Your Name Here",
@@ -240,7 +241,7 @@ class AssetManager:
             column = row.column(align=True)
             column.operator("blosm.am_add_bldg_asset", text='', icon='ADD')
             column.operator("blosm.am_delete_bldg_asset", text='', icon='REMOVE')
-        self.drawPath(assetIconBox.row(), assetInfo, "path", "name")
+        self.drawPath(None, assetIconBox.row(), assetInfo, "path", "name")
         
         box.prop(am, "assetCategory")
         
@@ -251,17 +252,28 @@ class AssetManager:
             box.prop(am, "featureRpx")
             box.prop(am, "numTilesU")
             box.prop(am, "numTilesV")
+            
+            if am.showAdvancedOptions:
+                self.drawPath("Specular map", box.row(), assetInfo, "specularMapPath", "specularMapName")
         elif am.assetCategory == "cladding":
             box.prop(am, "claddingMaterial")
             box.prop(am, "textureWidthM")
     
-    def drawPath(self, rowPath, assetInfo, pathAttr, nameAttr):
-        rowPath.label(text =\
-            rowPath.label(text = "Path: %s/%s" % (assetInfo[pathAttr], assetInfo[nameAttr]))\
-                if assetInfo["name"] else\
-                rowPath.label(text = "Select an asset:")
-        )
-        rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
+    def drawPath(self, textureName, rowPath, assetInfo, pathAttr, nameAttr):
+        if textureName:
+            rowPath.label(text = "%s:" % textureName)
+            rowPath.label(text = "%s/%s" % (assetInfo[pathAttr], assetInfo[nameAttr])\
+                if assetInfo.get(nameAttr) else\
+                "Select an asset:"
+            )
+        else:
+            rowPath.label(text = "Path: %s/%s" % (assetInfo[pathAttr], assetInfo[nameAttr])\
+                    if assetInfo.get(nameAttr) else\
+                    rowPath.label(text = "Select an asset:")
+            )
+        op = rowPath.operator("blosm.am_set_asset_path", icon='FILE_FOLDER')
+        op.pathAttr = pathAttr
+        op.nameAttr = nameAttr
 
 
 class MyAddonPreferences(bpy.types.AddonPreferences, AssetManager):
@@ -1001,6 +1013,10 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
         subtype = 'FILE_PATH'
     )
     
+    pathAttr: bpy.props.StringProperty()
+    
+    nameAttr: bpy.props.StringProperty()
+    
     def execute(self, context):
         assetsDir = os.path.normpath(getAssetsDir(context))
         directory = os.path.normpath(self.directory)
@@ -1054,11 +1070,9 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
     
     def setAssetPath(self, context, path, name):
         assetInfo = getAssetInfo(context)
-        if path != assetInfo["path"] or name != assetInfo["name"]:
-            assetInfo.update(
-                path = path,
-                name = name
-            )
+        if path != assetInfo.get(self.pathAttr) or name != assetInfo.get(self.nameAttr):
+            assetInfo[self.pathAttr] = path
+            assetInfo[self.nameAttr] = name
             _markBuildingEdited(getBuildingEntry(context))
 
 
