@@ -37,6 +37,8 @@ assetAttr2AmAttr = {
     "featureRpx": "featureRpx",
     "numTilesU": "numTilesU",
     "numTilesV": "numTilesV",
+    # it's required to perform conversion: false->0, true->0: int(false)=0, int(true)=1
+    "cladding": ("useCladdingTexture", int),
     "material": "claddingMaterial",
     "textureWidthM": "textureWidthM",
     "part": "buildingPart"
@@ -52,7 +54,8 @@ defaults = dict(
             featureLpx = 0,
             featureRpx = 100,
             numTilesU = 2,
-            numTilesV = 2
+            numTilesV = 2,
+            cladding = 0
         ),
         cladding = dict(
             category = "cladding",
@@ -117,6 +120,7 @@ def updateAttributes(am, assetInfo):
         am.featureRpx = assetInfo["featureRpx"]
         am.numTilesU = assetInfo["numTilesU"]
         am.numTilesV = assetInfo["numTilesV"]
+        am.useCladdingTexture = assetInfo["cladding"]
     elif category == "cladding":
         am.claddingMaterial = assetInfo["material"]
         am.textureWidthM = assetInfo["textureWidthM"]
@@ -267,6 +271,7 @@ class AssetManager:
             box.prop(am, "featureRpx")
             box.prop(am, "numTilesU")
             box.prop(am, "numTilesV")
+            box.prop(am, "useCladdingTexture")
             
             if am.showAdvancedOptions:
                 self.drawPath("Specular map", box.row(), assetInfo, "specularMapPath", "specularMapName")
@@ -349,8 +354,11 @@ def updateBuildingAsset(self, context):
 def _updateAttribute(attr, self, context):
     assetInfo = getAssetInfo(context)
     
-    if getattr(self, assetAttr2AmAttr[attr]) != assetInfo[attr]:
-        assetInfo[attr] = getattr(self, assetAttr2AmAttr[attr])
+    attrValue = assetAttr2AmAttr[attr][1]( getattr(self, assetAttr2AmAttr[attr][0]) )\
+        if isinstance(assetAttr2AmAttr[attr], tuple) else\
+        getattr(self, assetAttr2AmAttr[attr])
+    if attrValue != assetInfo[attr]:
+        assetInfo[attr] = attrValue
         _markBuildingEdited( getBuildingEntry(context) )
 
 
@@ -389,6 +397,9 @@ def updateFeatureLpx(self, context):
 
 def updateFeatureRpx(self, context):
     _updateAttribute("featureRpx", self, context)
+
+def updateUseCladdingTexture(self, context):
+    _updateAttribute("cladding", self, context)
 
 def updateNumTilesU(self, context):
     _updateAttribute("numTilesU", self, context)
@@ -511,6 +522,12 @@ class BlosmAmProperties(bpy.types.PropertyGroup):
         subtype = 'PIXEL',
         description = "The right coordinate in pixels of the texture feature (for example, a window)",
         update = updateFeatureRpx
+    )
+    
+    useCladdingTexture: bpy.props.BoolProperty(
+        name = "Has transparent parts to use cladding texture",
+        default = False,
+        update = updateUseCladdingTexture
     )
     
     numTilesU: bpy.props.IntProperty(
@@ -866,6 +883,8 @@ class BLOSM_OT_AmSaveAp(bpy.types.Operator):
         )
         self.report({'INFO'}, "The asset package has been successfully saved to %s" % path)
         self.cleanup(assetPackage[0], False)
+        global _updateEnumBuildings
+        _updateEnumBuildings = True
         return {'FINISHED'}
     
     def validate(self):
