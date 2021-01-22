@@ -145,10 +145,11 @@ def _getBuildingTuple(bldgIndex, bldg, context):
     return (
         str(bldgIndex),
         
-        "%s%s%s" % (
+        "%s%s%s%s" % (
             "[edit] " if bldg["_changed"]==_edited else ("[new] " if bldg["_changed"]==_new else ''),
             bldg["use"],
-            " %s" % assetInfo["name"] if assetInfo["name"] else ''
+            " %s" % assetInfo["name"] if assetInfo["name"] else '',
+            " (%s assets)" % len(bldg["assets"]) if len(bldg["assets"]) > 1 else ''
         ),
         
         "%s%s" % (bldg["use"], " %s" % assetInfo["name"] if assetInfo["name"] else ''),
@@ -664,6 +665,9 @@ class BLOSM_OT_AmEditAp(bpy.types.Operator):
         updateAttributes(am, assetInfo)
         
         context.scene.blosmAm.state = "apEditor"
+        
+        global _updateEnumBuildings
+        _updateEnumBuildings = True
         return {'FINISHED'}
 
 
