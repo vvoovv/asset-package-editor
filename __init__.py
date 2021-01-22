@@ -153,7 +153,7 @@ def _getBuildingTuple(bldgIndex, bldg, context):
         
         "%s%s" % (bldg["use"], " %s" % assetInfo["name"] if assetInfo["name"] else ''),
         
-        imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else "BLANK1",
+        imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else 'BLANK1',
         
         # index is required to show the icons
         bldgIndex
@@ -172,7 +172,7 @@ def getBuildingAssets(self, context):
             str(assetIndex),
             assetInfo["name"],
             assetInfo["name"],
-            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else "BLANK1",
+            imagePreviews[0].get(os.path.join(assetInfo["path"], assetInfo["name"])).icon_id if assetInfo["name"] else 'BLANK1',
             # index is required to show the icons
             assetIndex
         ) for assetIndex, assetInfo in enumerate(buildingEntry["assets"])
@@ -1010,7 +1010,7 @@ class BLOSM_OT_AmAddBldgAsset(bpy.types.Operator):
         assetInfo.update(name = '', path = '')
         buildingEntry["assets"].append(assetInfo)
         
-        _enumBuildingAssets.append( (str(assetIndex), '', '', "BLANK1", assetIndex) )
+        _enumBuildingAssets.append( (str(assetIndex), '', '', 'BLANK1', assetIndex) )
         am.buildingAsset = str(assetIndex)
         
         _markBuildingEdited(buildingEntry)
