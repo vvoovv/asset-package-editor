@@ -1033,7 +1033,7 @@ class BLOSM_OT_AmDeleteBldgAsset(bpy.types.Operator):
         
         del buildingEntry["assets"][assetIndex]
         
-        context.scene.blosmAm.building = "0"
+        context.scene.blosmAm.buildingAsset = "0"
             
         _markBuildingEdited(buildingEntry)
         return {'FINISHED'}
