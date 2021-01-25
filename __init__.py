@@ -20,6 +20,10 @@ import bpy
 import bpy.utils.previews
 
 
+# the maximum file name length for a texture file
+maxFileNameLength = 27
+
+
 assetPackages = []
 # the content of the current asset package
 assetPackage = [0]
@@ -1070,10 +1074,15 @@ class BLOSM_OT_AmSetAssetPath(bpy.types.Operator):
         
         name = self.filename
         
+        if len(name) > maxFileNameLength:
+            self.report({'ERROR'}, "The maximum file name length is %s characters" % maxFileNameLength)
+            return {'CANCELLED'}
+        
         if directory.startswith(assetsDir):
             lenAssetsDir = len(assetsDir)
             if lenAssetsDir == len(directory):
                 self.report({'ERROR'}, "The asset must be located in the folder of an asset package")
+                return {'CANCELLED'}
             else:
                 self.setAssetPath(
                     context,
