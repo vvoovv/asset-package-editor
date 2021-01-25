@@ -1,11 +1,11 @@
 from importlib.resources import path
 bl_info = {
-    "name": "New Object",
+    "name": "Asset Package Editor for Blosm",
     "author": "Your Name Here",
     "version": (1, 0),
     "blender": (2, 80, 0),
     "location": "Addon settings",
-    "description": "Asset Manager",
+    "description": "Asset Package Editor for Blosm addon",
     "warning": "",
     "doc_url": "",
     "category": "Misc",
@@ -739,18 +739,23 @@ class BLOSM_OT_AmCopyAp(bpy.types.Operator):
     
     def copyAssetInfos(self, sourceDir, targetDir, apDirName):
         os.makedirs( os.path.join(targetDir, "asset_info") )
+        
+        # actually we copy only the <asset_info.json>
+        
+        # 'ai' stands for 'asset info'
+        aiFilepathSource = os.path.join(sourceDir, "asset_info", "asset_info.json")
+        aiFilepathTarget = os.path.join(targetDir, "asset_info", "asset_info.json")
+        # open the source asset info file
+        with open(aiFilepathSource, 'r') as aiFile:
+            assetInfos = json.load(aiFile)
+        self.processAssetInfos(assetInfos, apDirName)
+        # write the target asset info file
+        writeJson(assetInfos, aiFilepathTarget)
+        
+        # The old code to copy all JSON files with asset info is commented out:
         # iterate through JSON files in the sub-directory "asset_info" of <sourceDir>
-        for fileName in os.listdir( os.path.join(sourceDir, "asset_info") ):
-            if os.path.splitext(fileName)[1] == ".json":
-                # 'ai' stands for 'asset info'
-                aiFilepathSource = os.path.join(sourceDir, "asset_info", fileName)
-                aiFilepathTarget = os.path.join(targetDir, "asset_info", fileName)
-                # open the source asset info file
-                with open(aiFilepathSource, 'r') as aiFile:
-                    assetInfos = json.load(aiFile)
-                self.processAssetInfos(assetInfos, apDirName)
-                # write the target asset info file
-                writeJson(assetInfos, aiFilepathTarget)
+        #for fileName in os.listdir( os.path.join(sourceDir, "asset_info") ):
+        #    if os.path.splitext(fileName)[1] == ".json":
     
     def processAssetInfos(self, assetInfos, apDirName):
         """
