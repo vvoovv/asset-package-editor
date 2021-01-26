@@ -249,6 +249,8 @@ class AssetManager:
         row2.operator("blosm.am_add_building", text='', icon='FILE_NEW')
         row2.operator("blosm.am_delete_building", text='', icon='PANEL_CLOSE')
         
+        layout.separator(factor=3.0)
+        
         layout.prop(am, "buildingUse")
         
         assetInfo = getAssetInfo(context)
